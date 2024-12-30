@@ -1,4 +1,4 @@
-# 🪶 Feather - A lightweight agent framework
+# Feather - A lightweight agent framework
 
 ![Feather Logo](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
 
