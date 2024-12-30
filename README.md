@@ -77,7 +77,7 @@ agent.loadHistory(history) //loads the chat history from an array of messages
 ```
 
 ### COGNITION
-Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. <think>...</think>, <plan>...</plan>, <speak>...</speak> are the tags used. <speak> tags are parsed and returned as the agent's response.
+Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. `<think>...</think>`, `<plan>...</plan>`, `<speak>...</speak>` are the tags used. `<speak>` tags are parsed and returned as the agent's response.
 
 I find that cognition is a great way to get increased accuracy and consistency with tool usage.
 
