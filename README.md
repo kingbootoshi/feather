@@ -28,21 +28,37 @@ https://openpipe.ai/
 
 ## CREATING AN AGENT
 
+Creating an agent is easy:
+
 ```typescript
 const internetAgent = new FeatherAgent({
-    model: "deepseek/deepseek-chat", // REQUIRED
-    systemPrompt: "You are a helpful assistant", // REQUIRED
-    tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
-    cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
-    debug: true, // OPTIONAL, ENABLES DEBUG GUI
+    model: "deepseek/deepseek-chat",
+    systemPrompt: "You are a helpful assistant that can browse the internet", 
+    tools: [internetTool],
 })
 ```
 
-Running an agent is simpler:
+Running an agent is easier:
 
 ```typescript
 const result = internetAgent.run("What's the latest quantum chip that dropped? How does it advance AI?")
+logger.info("Internet Agent said:", result.output)
 ```
+
+### FeatherAgent Parameters
+
+Required:
+- `systemPrompt` (string) - Core instructions that define the agent's behavior
+
+Optional:
+- `model` (string) - LLM model to use (defaults to "openai/gpt-4o")
+- `agentId` (string) - Unique ID for the agent (auto-generates if not provided) 
+- `tools` (ToolDefinition[]) - Tools the agent can use (cannot use with structuredOutputSchema)
+- `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools)
+- `cognition` (boolean) - Enables <think>, <plan>, <speak> XML tags
+- `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
+- `debug` (boolean) - Enables debug GUI monitoring
+
 
 ## MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
