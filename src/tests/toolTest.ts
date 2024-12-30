@@ -67,7 +67,6 @@ async function main() {
     cognition: true,
     tools: [calculatorTool],
     model: "deepseek/deepseek-chat",
-    additionalParams: { temperature: 0.0 },
     debug: true // <--- enabling debug mode
   });
 

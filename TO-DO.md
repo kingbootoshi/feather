@@ -1,8 +1,9 @@
 TO DO:
 - test structured output
-- make the output a direct string
+- make the output a direct string if not structured output
 - implement dynamic variables
 - add the image function to message
+- add chainRunning
 
 THOUGHTS:
 - if an agent chains it's own tools, how can we provide back the first output to a user?

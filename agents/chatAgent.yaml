@@ -1,0 +1,22 @@
+name: "ChatAgent"
+description: "A chat agent designed for natural conversations."
+client: "anthropic"
+model: "claude-3-5-sonnet-20241022"
+
+personality: "{{from_personality:core_personality}}"
+main_goal: "Fight to the death"
+
+system_prompt: |
+  # PERSONALITY
+  {{personality}}
+
+  # MAIN GOAL
+  {{main_goal}}
+
+  {{additional_info}}
+
+dynamic_variables:
+  additional_info: "Currently in the One Piece universe"
+
+output_schema: null
+tools: []

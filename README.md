@@ -2,7 +2,7 @@
 
 ![dy_oIoS8L2SudycKG_Noa_eb99b192c6c84c0cbbd3a68d20076e20](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
 
-I don't need layers of abstraction. Base LLMs are very capable. This framework is for lightly defining agents with tools that auto-execute.
+I don't need layers of abstraction. Base LLMs are very capable. Feather lightly defines agents with tools that auto-execute.
 
 Chaining agents together with Feather looks like this:
 
@@ -17,7 +17,7 @@ Feather comes with an optional GUI that displays detailed log of the agent's sys
 <img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
 
 ## OPENROUTER
-We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can switch without trouble as the base SDK is OpenAI.
+We use OpenRouter for LLM calls, which uses the OpenAI SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can switch without trouble as the base SDK is OpenAI.
 
 https://openrouter.ai/
 
@@ -30,18 +30,18 @@ https://openpipe.ai/
 
 ```typescript
 const internetAgent = new FeatherAgent({
-model: "deepseek/deepseek-chat", // REQUIRED
-systemPrompt: "You are a helpful assistant", // REQUIRED
-tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
-cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
-debug: true, // OPTIONAL, ENABLES DEBUG GUI
+    model: "deepseek/deepseek-chat", // REQUIRED
+    systemPrompt: "You are a helpful assistant", // REQUIRED
+    tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
+    cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
+    debug: true, // OPTIONAL, ENABLES DEBUG GUI
 })
 ```
 
 Running an agent is simpler:
 
 ```typescript
-const result = agent.run("What is the mitochondria of the cell?")
+const result = internetAgent.run("What's the latest quantum chip that dropped? How does it advance AI?")
 ```
 
 ## MODIFYING AN AGENT'S MESSAGE HISTORY
