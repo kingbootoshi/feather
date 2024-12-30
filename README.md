@@ -76,12 +76,12 @@ You can modify an agent's message history with the following methods:
 agent.addUserMessage("Hello, how are you? Do you like my hat?", {image: "https://example.com/blueHat.jpg"}) //image optional
 agent.addAssistantMessage("I am fine, thank you! Nice blue hat! Looks good on you!")
 
-// Extracting current message history
-agent.extractHistory() //returns the chat history as an array of messages
-
 // Loading in custom message history
 const history = [{role: "user", content: "Hello, how are you? Do you like my hat?", image: "https://example.com/blueHat.jpg"}, {role: "assistant", content: "I am fine, thank you! Nice blue hat! Looks good on you!"}] //array of messages
 agent.loadHistory(history) //loads the chat history from an array of messages
+
+// Extracting current message history
+agent.extractHistory() //returns the chat history as an array of messages
 ```
 
 ### COGNITION
