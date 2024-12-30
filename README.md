@@ -2,9 +2,13 @@
 
 ![Feather Logo](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
 
+<div align="center">
+
 [![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-orange.svg)](https://bun.sh)
-[![Discord](https://img.shields.io/badge/Discord-Add%20to%20Server-7289da.svg)](https://discord.gg/amR4AEjqh4)
+[![Discord](https://img.shields.io/badge/Discord-Join%20AI%20University-7289da.svg)](https://discord.gg/amR4AEjqh4)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+</div>
 
 I don't need layers of abstraction. Base LLMs are very capable. Feather lightly defines agents with tools that auto-execute.
 
