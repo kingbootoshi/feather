@@ -1,5 +1,7 @@
 # Feather - A lightweight agent framework
 
+![MqjPz_tbYXE7gXHwFcIfu_2767cccdff114ba2a448309a43b00ed5](https://github.com/user-attachments/assets/9c8414ea-f1ee-4c62-8c7d-1df8fc487a46)
+
 Create an agent and run it with agent.run("input text"). The result returns the agent's response.
 
 - **Base**: OpenRouter + OpenPipe, use any model & save training data.
@@ -12,8 +14,8 @@ Create an agent and run it with agent.run("input text"). The result returns the 
 Chaining agents together looks like:
 
 ```typescript
-const timelineData = twitterAgent.run("Get me 50 tweets from my AI list and 50 tweets from my homepage")
-const summary = summaryAgent.run('What is going on in my timeline? ' + timelineData)
+const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summarize it for me")
+const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData)
 ```
 
 ## OPENROUTER
@@ -30,6 +32,7 @@ https://openpipe.ai/
 
 ```typescript
 const agent = new Agent({
+agentId: "my-agent-id", // OPTIONAL, used for metadata and training data tagging
 model: "openai/gpt-4o-mini", // REQUIRED
 parameters: {
     temperature: 0.5,
@@ -91,17 +94,6 @@ Parallel tool calls are supported.
 
 ## STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
-
-## LOGGING
-
-We use the PINO logger for logging with the pino-pretty plugin. Please log everything with depth
-
-- Use info to log the flow of the program
-- Use debug to log more detailed and full outputs
-- Use error to log errors
-
-## COMMENTING
-We must leave DETAILED comments in the code explaining the flow of the program and how we move step by step.
 
 ## DEBUG TERMINAL GUI
 Feather comes with an optional GUI that displays the agent's current system prompt, the messages in it's chat history, the user input and the agent's output, and any detailed information about the run. This is enabled by the debug property in the agent config. Connect to it via localhost:3000.
