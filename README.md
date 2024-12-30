@@ -63,7 +63,7 @@ Optional:
 - `agentId` (string) - Unique ID for the agent (auto-generates if not provided) 
 - `tools` (ToolDefinition[]) - Tools the agent can use (cannot use with structuredOutputSchema)
 - `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools)
-- `cognition` (boolean) - Enables <think>, <plan>, <speak> XML tags
+- `cognition` (boolean) - Enables `<think>, <plan>, <speak>` XML tags
 - `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
 - `debug` (boolean) - Enables debug GUI monitoring
 
