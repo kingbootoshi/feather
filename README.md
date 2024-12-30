@@ -1,22 +1,20 @@
 # Feather - A lightweight agent framework
 
-![MqjPz_tbYXE7gXHwFcIfu_2767cccdff114ba2a448309a43b00ed5](https://github.com/user-attachments/assets/8d4bcc5a-61af-44f1-9b9e-8e0524201524)
+![dy_oIoS8L2SudycKG_Noa_eb99b192c6c84c0cbbd3a68d20076e20](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
 
-Create an agent and run it with agent.run("input text"). The result returns the agent's response.
+I don't need layers of abstraction. Base LLMs are very capable. This framework is for lightly defining agents with tools that auto-execute.
 
-- **Base**: OpenRouter + OpenPipe, use any model & save training data.
-- **Simple Config**: Choose model & system prompt. System prompt can manage dynamic variables, which are updated every .run() execution
-- **Cognition**: Option to enable XML tags which allow the agent to generate thinking/planning tags before executing that are automaticallyparsed.
-- **Structured Output**: Option over tools.
-- **Tools**: Can equip with tools, automatically handle executing tools, adding results to agent chat history, then re-running the agent to provide the user the result, or even continue with another tool until it's done
-- **Control message history** - add messages (with images), load chat history, or extract chat history for chat manipulation & management
-
-Chaining agents together looks like:
+Chaining agents together with Feather looks like this:
 
 ```typescript
 const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summarize it for me")
 const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData)
 ```
+
+## DEBUG TERMINAL GUI
+Feather comes with an optional GUI that displays detailed log of the agent's system prompt, message history, and LLM calls that went into each response.
+
+<img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
 
 ## OPENROUTER
 We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can easily switch as the base SDK is OpenAI.
@@ -152,8 +150,3 @@ const calculatorTool: ToolDefinition = {
 
 ## STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
-
-## DEBUG TERMINAL GUI
-Feather comes with an optional GUI that displays the agent's current system prompt, the messages in it's chat history, the user input and the agent's output, and any detailed information about the run. This is enabled by the debug property in the agent config. Connect to it via localhost:3000.
-
-<img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
