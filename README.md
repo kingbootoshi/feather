@@ -17,7 +17,7 @@ Feather comes with an optional GUI that displays detailed log of the agent's sys
 <img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
 
 ## OPENROUTER
-We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can easily switch as the base SDK is OpenAI.
+We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can easily switch as the base SDK is OpenAI.
 
 https://openrouter.ai/
 
@@ -31,22 +31,8 @@ https://openpipe.ai/
 ```typescript
 const agent = new Agent({
 model: "openai/gpt-4o-mini", // REQUIRED
-parameters: {
-    temperature: 0.5,
-    max_tokens: 1000,
-    top_p: 0.95,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-}, // OPTIONAL
 systemPrompt: "You are a helpful assistant", // REQUIRED
-tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT
-structuredOutput: {
-    type: "json_object",
-    properties: {
-        summary: { type: "string" },
-        news: { type: "string" },
-    }
-}, // OPTIONAL, ONLY IF TOOLS ARE NOT USED !! 
+tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
 cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
 debug: true, // OPTIONAL, ENABLES DEBUG GUI
 })
@@ -56,11 +42,6 @@ Running an agent is simpler:
 
 ```typescript
 const result = agent.run("What is the mitochondria of the cell?")
-console.log(result.content)
-
-// result is an object with the following properties:
-// content: string - the agent's response, parse if structured output is used
-// tool_calls: any[] - the function calls used by the agent for that call
 ```
 
 ## MODIFYING AN AGENT'S MESSAGE HISTORY
@@ -82,66 +63,50 @@ agent.loadHistory(history) //loads the chat history from an array of messages
 ## COGNITION
 Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. <think>...</think>, <plan>...</plan>, <speak>...</speak> are the tags used. <speak> tags are parsed and returned as the agent's response.
 
-## TOOL USE
-Tool calls (also known as function calling) allow you to give an LLM access to external tools. The LLM does not call the tools directly. Instead, it suggests the tool to call. Usually, it's up to the user to call the tool separately and provide the results back to the LLM. Finally, the LLM formats the response into an answer to the user's original question.
+I find that cognition is a great way to get increased accuracy and consistency with tool usage.
 
-Using Feather, we expect your tool to be defined WITH the function execution and output ready to go. This way, when giving an agent a tool, the agent can execute the tool, get the results saved back in it's chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
+## TOOL USE
+Tool calls (also known as function calling) allow you to give an LLM access to external tools.
+
+Feather expects your tool to be defined WITH the function execution and output ready to go. This way, when giving an agent a tool, the agent can execute the tool, get the results saved in its chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
 
 Parallel tool calls are supported.
 
 Setting up a tool function call following OpenAI structure + Excecution
 ```typescript
-const calculatorTool: ToolDefinition = {
+const internetTool: ToolDefinition = {
   type: "function",
   function: {
-    name: "calculator",
-    description: "Performs basic arithmetic operations between two numbers",
+    name: "search_internet",
+    description: "Search the internet for up-to-date information using Perplexity AI",
     parameters: {
-      type: "object",
+      type: "object", 
       properties: {
-        num1: {
-          type: "number",
-          description: "The first number in the calculation"
-        },
-        num2: {
-          type: "number",
-          description: "The second number in the calculation"
-        },
-        operation: {
+        query: {
           type: "string",
-          enum: ["add", "subtract", "multiply", "divide"],
-          description: "The arithmetic operation to perform"
+          description: "The search query to look up information about"
         }
       },
-      required: ["num1", "num2", "operation"]
+      required: ["query"]
     }
   },
-  // Execute function with proper error handling and validation
-  async execute(args: Record<string, any>): Promise<{ result: number }> {
-    logger.info({ args }, "Executing calculator tool");
+  // Execute function to search using Perplexity AI
+  async execute(args: Record<string, any>): Promise<{ result: string }> {
+    logger.info({ args }, "Executing internet search tool");
     
     try {
       const params = typeof args === 'string' ? JSON.parse(args) : args;
-      if (typeof params.num1 !== 'number' || typeof params.num2 !== 'number') {
-        throw new Error("Both numbers must be valid numeric values");
+      if (typeof params.query !== 'string') {
+        throw new Error("Query must be a valid string");
       }
-      if (params.operation === "divide" && params.num2 === 0) {
-        throw new Error("Division by zero is not allowed");
-      }
-      switch (params.operation) {
-        case "add":
-          return { result: params.num1 + params.num2 };
-        case "subtract":
-          return { result: params.num1 - params.num2 };
-        case "multiply":
-          return { result: params.num1 * params.num2 };
-        case "divide":
-          return { result: params.num1 / params.num2 };
-        default:
-          throw new Error(`Unsupported operation: ${params.operation}`);
-      }
+
+      // Call Perplexity API to get search results
+      const searchResult = await queryPerplexity(params.query);
+      
+      return { result: searchResult };
+
     } catch (error) {
-      logger.error({ error, args }, "Calculator tool error");
+      logger.error({ error, args }, "Internet search tool error");
       throw error;
     }
   }
