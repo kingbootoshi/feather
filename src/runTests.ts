@@ -22,6 +22,10 @@ const TEST_FILES: TestFiles = {
   'Structured Output Test': {
     path: './tests/structuredtest.ts',
     description: 'Tests structured output functionality with a Q&A agent'
+  },
+  'Chat Room Test': {
+    path: './tests/chatRoomTest.ts',
+    description: 'Tests the chat room functionality with a dramatic conversation agent'
   }
 };
 
