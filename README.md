@@ -1,6 +1,6 @@
 # Feather - A lightweight agent framework
 
-![MqjPz_tbYXE7gXHwFcIfu_2767cccdff114ba2a448309a43b00ed5](https://github.com/user-attachments/assets/9c8414ea-f1ee-4c62-8c7d-1df8fc487a46)
+![MqjPz_tbYXE7gXHwFcIfu_2767cccdff114ba2a448309a43b00ed5](https://github.com/user-attachments/assets/8d4bcc5a-61af-44f1-9b9e-8e0524201524)
 
 Create an agent and run it with agent.run("input text"). The result returns the agent's response.
 
@@ -32,7 +32,6 @@ https://openpipe.ai/
 
 ```typescript
 const agent = new Agent({
-agentId: "my-agent-id", // OPTIONAL, used for metadata and training data tagging
 model: "openai/gpt-4o-mini", // REQUIRED
 parameters: {
     temperature: 0.5,
@@ -92,8 +91,69 @@ Using Feather, we expect your tool to be defined WITH the function execution and
 
 Parallel tool calls are supported.
 
+Setting up a tool function call following OpenAI structure + Excecution
+```typescript
+const calculatorTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "calculator",
+    description: "Performs basic arithmetic operations between two numbers",
+    parameters: {
+      type: "object",
+      properties: {
+        num1: {
+          type: "number",
+          description: "The first number in the calculation"
+        },
+        num2: {
+          type: "number",
+          description: "The second number in the calculation"
+        },
+        operation: {
+          type: "string",
+          enum: ["add", "subtract", "multiply", "divide"],
+          description: "The arithmetic operation to perform"
+        }
+      },
+      required: ["num1", "num2", "operation"]
+    }
+  },
+  // Execute function with proper error handling and validation
+  async execute(args: Record<string, any>): Promise<{ result: number }> {
+    logger.info({ args }, "Executing calculator tool");
+    
+    try {
+      const params = typeof args === 'string' ? JSON.parse(args) : args;
+      if (typeof params.num1 !== 'number' || typeof params.num2 !== 'number') {
+        throw new Error("Both numbers must be valid numeric values");
+      }
+      if (params.operation === "divide" && params.num2 === 0) {
+        throw new Error("Division by zero is not allowed");
+      }
+      switch (params.operation) {
+        case "add":
+          return { result: params.num1 + params.num2 };
+        case "subtract":
+          return { result: params.num1 - params.num2 };
+        case "multiply":
+          return { result: params.num1 * params.num2 };
+        case "divide":
+          return { result: params.num1 / params.num2 };
+        default:
+          throw new Error(`Unsupported operation: ${params.operation}`);
+      }
+    } catch (error) {
+      logger.error({ error, args }, "Calculator tool error");
+      throw error;
+    }
+  }
+};
+```
+
 ## STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
 
 ## DEBUG TERMINAL GUI
 Feather comes with an optional GUI that displays the agent's current system prompt, the messages in it's chat history, the user input and the agent's output, and any detailed information about the run. This is enabled by the debug property in the agent config. Connect to it via localhost:3000.
+
+<img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />

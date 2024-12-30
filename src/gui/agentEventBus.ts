@@ -1,6 +1,12 @@
 import { EventEmitter } from 'events';
 import { FeatherAgent } from '../core/FeatherAgent';
 
+interface LlmRequestRecord {
+  iteration: number;
+  requestData: any;
+  responseData?: any;
+}
+
 interface AgentInfo {
   id: string;
   agentInstance: FeatherAgent;
@@ -9,6 +15,7 @@ interface AgentInfo {
   lastError: string | null;
   aiResponse: string | null;
   logs: string[];
+  llmRequests: LlmRequestRecord[];
 }
 
 class AgentEventBus extends EventEmitter {
@@ -34,7 +41,8 @@ class AgentEventBus extends EventEmitter {
       chatHistory: agentInstance.getMessages() || [],
       aiResponse: null,
       lastError: null,
-      logs: []
+      logs: [],
+      llmRequests: []
     };
     this.agents.set(agentId, agentInfo);
     this.emit('newAgentSession', { agent: agentInfo });
@@ -85,6 +93,32 @@ class AgentEventBus extends EventEmitter {
     if (agentInfo) {
       agentInfo.logs = logs;
       this.emit('agentLogsUpdated', { agentId, logs });
+    }
+  }
+
+  /**
+   * Store a new LLM request object in the agent info.
+   */
+  public storeLlmRequest(agentId: string, record: { iteration: number; requestData: any }) {
+    const agentInfo = this.agents.get(agentId);
+    if (!agentInfo) return;
+    agentInfo.llmRequests.push({
+      iteration: record.iteration,
+      requestData: record.requestData
+    });
+  }
+
+  /**
+   * Store the LLM response object for the specific iteration request.
+   */
+  public storeLlmResponse(agentId: string, iteration: number, record: { responseData: any }) {
+    const agentInfo = this.agents.get(agentId);
+    if (!agentInfo) return;
+
+    // Find the request record with matching iteration
+    const existing = agentInfo.llmRequests.find(r => r.iteration === iteration);
+    if (existing) {
+      existing.responseData = record.responseData;
     }
   }
 }

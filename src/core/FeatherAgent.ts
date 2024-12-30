@@ -28,6 +28,7 @@ export class FeatherAgent {
   private openai: OpenAI;
   private agentRegistered: boolean = false;
   private agentLog: string[] = []; // store raw logs for debugging
+  private llmCallIteration: number = 0; // track the iteration count
 
   constructor(config: FeatherAgentConfig) {
     this.config = config;
@@ -111,6 +112,7 @@ export class FeatherAgent {
 
     while (iterationCount < maxIterations) {
       iterationCount++;
+      this.llmCallIteration++;
       logger.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
       this.logEntry(`--- LLM call iteration #${iterationCount} ---`);
 
@@ -147,6 +149,14 @@ export class FeatherAgent {
       }, "LLM API Request Data");
       this.logEntry(`LLM REQUEST:\n${JSON.stringify(callParams, null, 2)}`);
 
+      // Store the request in the agent event bus
+      if (this.agentRegistered) {
+        agentEventBus.storeLlmRequest(this.getAgentId(), {
+          iteration: this.llmCallIteration,
+          requestData: callParams
+        });
+      }
+
       let response;
       try {
         response = await this.openai.chat.completions.create(callParams);
@@ -161,6 +171,13 @@ export class FeatherAgent {
           created: response.created
         }, "LLM API Response Data");
         this.logEntry(`LLM RESPONSE:\n${JSON.stringify(response, null, 2)}`);
+
+        // Store the response in the agent event bus
+        if (this.agentRegistered) {
+          agentEventBus.storeLlmResponse(this.getAgentId(), this.llmCallIteration, {
+            responseData: response
+          });
+        }
 
       } catch (err: any) {
         logger.error(err, "Error from OpenRouter call");

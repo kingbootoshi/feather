@@ -98,6 +98,10 @@ class DebugGuiServer {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(agentInfo.logs));
             return;
+          case 'llm-requests':
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(agentInfo.llmRequests || []));
+            return;
           default:
             res.writeHead(404);
             res.end('Not found');

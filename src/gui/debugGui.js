@@ -1,72 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const logContainer = document.getElementById('logs');
-  const toggleLogsButton = document.getElementById('toggleLogsButton');
   const systemPromptDisplay = document.getElementById('systemPromptDisplay');
   const agentTabs = document.getElementById('agentTabs');
   const chatArea = document.getElementById('chatArea');
   const chatHistoryContainer = document.getElementById('chatHistoryContainer');
   const userMessageInput = document.getElementById('userMessageInput');
   const sendMessageButton = document.getElementById('sendMessageButton');
-  const logLevelFilter = document.getElementById('logLevelFilter');
-  const toggleRawLogButton = document.getElementById('toggleRawLogButton');
-  const rawLogPanel = document.getElementById('rawLogPanel');
 
   let currentAgentId = null;
-  let logsVisible = localStorage.getItem('logsVisible') === 'true';
-
-  const logLevels = {
-    error: localStorage.getItem('logLevel_error') === 'true' || true,
-    info: localStorage.getItem('logLevel_info') === 'true' || true,
-    debug: localStorage.getItem('logLevel_debug') === 'true' || true
-  };
-
-  function updateLogLevelUI() {
-    if (!logLevelFilter) return;
-    logLevelFilter.innerHTML = '';
-    ['error','info','debug'].forEach(level => {
-      const btn = document.createElement('button');
-      btn.classList.add('log-level-toggle');
-      btn.dataset.level = level;
-      btn.textContent = level.toUpperCase();
-      if (logLevels[level]) {
-        btn.classList.add('active');
-      }
-      btn.addEventListener('click', () => toggleLogLevel(level));
-      logLevelFilter.appendChild(btn);
-    });
-  }
-
-  function toggleLogLevel(level) {
-    logLevels[level] = !logLevels[level];
-    localStorage.setItem(`logLevel_${level}`, logLevels[level]);
-    updateLogLevelUI();
-  }
-
-  // Show/hide the short logs
-  if (logsVisible) {
-    logContainer.classList.remove('hidden');
-    toggleLogsButton.textContent = 'Hide Logs';
-  } else {
-    logContainer.classList.add('hidden');
-    toggleLogsButton.textContent = 'Show Logs';
-  }
-
-  toggleLogsButton.addEventListener('click', () => {
-    logsVisible = !logsVisible;
-    localStorage.setItem('logsVisible', logsVisible);
-    if (logsVisible) {
-      logContainer.classList.remove('hidden');
-      toggleLogsButton.textContent = 'Hide Logs';
-    } else {
-      logContainer.classList.add('hidden');
-      toggleLogsButton.textContent = 'Show Logs';
-    }
-  });
-
-  // Toggle the raw log panel
-  toggleRawLogButton.addEventListener('click', () => {
-    rawLogPanel.classList.toggle('show');
-  });
+  let llmRequestsData = [];
 
   async function fetchAgents() {
     try {
@@ -109,14 +50,107 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function fetchLogs(agentId) {
+  async function fetchLlmRequests(agentId) {
     try {
-      const resp = await fetch(`/agent/${agentId}/logs`);
+      const resp = await fetch(`/agent/${agentId}/llm-requests`);
       if (!resp.ok) return [];
       return await resp.json();
     } catch (err) {
+      console.error('Error fetching LLM requests:', err);
       return [];
     }
+  }
+
+  function createShowRequestButton(iteration) {
+    const button = document.createElement('button');
+    button.className = 'llm-details-button';
+    button.innerText = 'Toggle Details Off';
+    
+    const detailsContainer = document.createElement('div');
+    detailsContainer.className = 'llm-details-container';
+
+    const matchingRequest = llmRequestsData.find(r => r.iteration === iteration);
+    if (matchingRequest) {
+      // Request Section
+      const requestSection = document.createElement('div');
+      requestSection.className = 'llm-section';
+      
+      const requestTitle = document.createElement('div');
+      requestTitle.className = 'llm-section-title';
+      requestTitle.innerText = 'REQUEST';
+      
+      const requestContent = document.createElement('div');
+      requestContent.className = 'llm-content';
+      requestContent.innerText = JSON.stringify(matchingRequest.requestData, null, 2);
+      
+      requestSection.appendChild(requestTitle);
+      requestSection.appendChild(requestContent);
+      
+      // Response Section
+      const responseSection = document.createElement('div');
+      responseSection.className = 'llm-section';
+      
+      const responseTitle = document.createElement('div');
+      responseTitle.className = 'llm-section-title';
+      responseTitle.innerText = 'RESPONSE';
+      
+      const responseContent = document.createElement('div');
+      responseContent.className = 'llm-content';
+      responseContent.innerText = JSON.stringify(matchingRequest.responseData, null, 2);
+      
+      responseSection.appendChild(responseTitle);
+      responseSection.appendChild(responseContent);
+      
+      detailsContainer.appendChild(requestSection);
+      detailsContainer.appendChild(responseSection);
+    } else {
+      detailsContainer.innerText = 'No matching request found.';
+    }
+
+    let isVisible = false;
+    button.addEventListener('click', () => {
+      isVisible = !isVisible;
+      button.innerText = isVisible ? 'Toggle Details Off' : 'Toggle Details On';
+      if (isVisible) {
+        detailsContainer.classList.add('visible');
+      } else {
+        detailsContainer.classList.remove('visible');
+      }
+    });
+
+    return { button, detailsContainer };
+  }
+
+  function renderMainChat(messages) {
+    chatArea.innerHTML = '';
+    if (!messages || messages.length === 0) {
+      chatArea.textContent = 'No chat messages';
+      return;
+    }
+    let assistantCounter = 0; 
+    const chatMessages = messages.filter(m => m.role !== 'system');
+
+    chatMessages.forEach(msg => {
+      const msgGroup = document.createElement('div');
+      msgGroup.className = 'message-group';
+
+      const div = document.createElement('div');
+      div.classList.add('chat-message', msg.role);
+      div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${msg.content || ''}`;
+      msgGroup.appendChild(div);
+
+      // If it's an assistant message, add the "Show LLM request" button
+      if (msg.role === 'assistant') {
+        // We assume each assistant message corresponds to an LLM call iteration
+        // so iteration is 1-based for each assistant message
+        assistantCounter++;
+        const { button, detailsContainer } = createShowRequestButton(assistantCounter);
+        msgGroup.appendChild(button);
+        msgGroup.appendChild(detailsContainer);
+      }
+
+      chatArea.appendChild(msgGroup);
+    });
   }
 
   function renderChatHistory(messages) {
@@ -131,38 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
       div.textContent = `${msg.role.toUpperCase()}: ${msg.content || ''}`;
       chatHistoryContainer.appendChild(div);
     });
-  }
-
-  function renderMainChat(messages) {
-    chatArea.innerHTML = '';
-    if (!messages || messages.length === 0) {
-      chatArea.textContent = 'No chat messages';
-      return;
-    }
-    const chatMessages = messages.filter(m => m.role !== 'system');
-    chatMessages.forEach(msg => {
-      const msgGroup = document.createElement('div');
-      msgGroup.className = 'message-group';
-
-      const div = document.createElement('div');
-      div.classList.add('chat-message', msg.role);
-      div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${msg.content || ''}`;
-      msgGroup.appendChild(div);
-
-      chatArea.appendChild(msgGroup);
-    });
-  }
-
-  function renderRawLogs(logs) {
-    rawLogPanel.innerHTML = '';
-    if (!logs || logs.length === 0) {
-      rawLogPanel.textContent = 'No detailed logs';
-      return;
-    }
-    const pre = document.createElement('pre');
-    pre.style.whiteSpace = 'pre-wrap';
-    pre.textContent = logs.join('\n');
-    rawLogPanel.appendChild(pre);
   }
 
   function renderAgentTabs(agents) {
@@ -190,16 +192,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function refreshAgentData() {
     if (!currentAgentId) return;
-    const [prompt, history, aiResp, logData] = await Promise.all([
+    const [prompt, history, requests] = await Promise.all([
       fetchSystemPrompt(currentAgentId),
       fetchChatHistory(currentAgentId),
-      fetchAIResponse(currentAgentId),
-      fetchLogs(currentAgentId)
+      fetchLlmRequests(currentAgentId)
     ]);
+    llmRequestsData = requests || [];
     systemPromptDisplay.textContent = prompt || '';
     renderChatHistory(history);
     renderMainChat(history);
-    renderRawLogs(logData);
   }
 
   (async () => {
@@ -237,6 +238,4 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-
-  updateLogLevelUI();
 });
