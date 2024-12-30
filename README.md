@@ -17,7 +17,7 @@ Feather comes with an optional GUI that displays detailed log of the agent's sys
 <img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
 
 ## OPENROUTER
-We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can easily switch as the base SDK is OpenAI.
+We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can switch without trouble as the base SDK is OpenAI.
 
 https://openrouter.ai/
 
@@ -30,7 +30,7 @@ https://openpipe.ai/
 
 ```typescript
 const internetAgent = new FeatherAgent({
-model: "openai/gpt-4o-mini", // REQUIRED
+model: "deepseek/deepseek-chat", // REQUIRED
 systemPrompt: "You are a helpful assistant", // REQUIRED
 tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
 cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
