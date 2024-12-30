@@ -29,7 +29,7 @@ https://openpipe.ai/
 ## CREATING AN AGENT
 
 ```typescript
-const agent = new Agent({
+const internetAgent = new FeatherAgent({
 model: "openai/gpt-4o-mini", // REQUIRED
 systemPrompt: "You are a helpful assistant", // REQUIRED
 tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT 
