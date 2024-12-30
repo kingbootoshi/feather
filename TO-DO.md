@@ -1,7 +1,7 @@
 TO DO:
 - test structured output
-- implement dynamic variables
-- add the image function to message
+- implement dynamic variables to system prompt
+- add the 'add image' logic to addUserMessage
 - add chainRunning
 
 THOUGHTS:

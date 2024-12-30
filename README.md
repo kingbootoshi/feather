@@ -60,7 +60,7 @@ Optional:
 - `debug` (boolean) - Enables debug GUI monitoring
 
 
-## MODIFYING AN AGENT'S MESSAGE HISTORY
+### MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
 
 ```typescript
@@ -76,12 +76,12 @@ const history = [{role: "user", content: "Hello, how are you? Do you like my hat
 agent.loadHistory(history) //loads the chat history from an array of messages
 ```
 
-## COGNITION
+### COGNITION
 Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. <think>...</think>, <plan>...</plan>, <speak>...</speak> are the tags used. <speak> tags are parsed and returned as the agent's response.
 
 I find that cognition is a great way to get increased accuracy and consistency with tool usage.
 
-## TOOL USE
+### TOOL USE
 Tool calls (also known as function calling) allow you to give an LLM access to external tools.
 
 Feather expects your tool to be defined WITH the function execution and output ready to go. This way, when giving an agent a tool, the agent can execute the tool, get the results saved in its chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
