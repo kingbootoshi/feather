@@ -11,8 +11,8 @@ const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summari
 const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData)
 ```
 
-## DEBUG TERMINAL GUI
-Feather comes with an optional GUI that displays detailed log of the agent's system prompt, message history, and LLM calls that went into each response.
+## DEBUG GUI 
+Feather comes with an optional GUI that displays detailed log of the agent's system prompt, message history, and LLM requests/responses that went into each assistant message.
 
 <img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
 
