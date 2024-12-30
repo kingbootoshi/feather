@@ -1,0 +1,32 @@
+{
+  "name": "feather",
+  "version": "1.0.0",
+  "description": "Feather: A lightweight agent framework using OpenRouter + pino logs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "LOG_LEVEL=debug bun run src/exampleAgent.ts | pino-pretty -c -t -l"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "feather",
+    "openrouter"
+  ],
+  "author": "Bootoshi",
+  "license": "MIT",
+  "dependencies": {
+    "http": "^0.0.1-security",
+    "openai": "^4.77.0",
+    "openpipe": "^0.40.0",
+    "pino": "^8.14.0",
+    "pino-pretty": "^10.2.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.13",
+    "typescript": "^5.2.2"
+  }
+}

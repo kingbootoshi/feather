@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Feather Debug GUI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: "Roboto Mono", monospace;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: row;
+    background: #000;
+    color: #ddd;
+    overflow: hidden;
+    position: relative;
+  }
+  body::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+      linear-gradient(0deg, transparent 24%, rgba(255,140,0,0.3) 25%, rgba(255,140,0,0.3) 26%, transparent 27%, transparent 74%, rgba(255,140,0,0.3) 75%, rgba(255,140,0,0.3) 76%, transparent 77%, transparent),
+      linear-gradient(90deg, transparent 24%, rgba(255,140,0,0.3) 25%, rgba(255,140,0,0.3) 26%, transparent 27%, transparent 74%, rgba(255,140,0,0.3) 75%, rgba(255,140,0,0.3) 76%, transparent 77%, transparent);
+    background-size: 50px 50px;
+    animation: movegrid 10s linear infinite;
+  }
+  @keyframes movegrid {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: 50px 50px, 50px 50px; }
+  }
+  .sidebar, .main-container {
+    position: relative;
+    z-index: 1;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(6px);
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #111;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #FF8C00;
+    border-radius: 4px;
+  }
+  .sidebar {
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #FF8C00;
+    overflow: hidden;
+  }
+  .main-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .agent-tabs {
+    display: flex;
+    flex-direction: row;
+    border-bottom: 1px solid #FF8C00;
+    overflow-x: auto;
+    white-space: nowrap;
+    background: #000;
+  }
+  .agent-tab {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-weight: 500;
+    user-select: none;
+    color: #bbb;
+    border-right: 1px solid #FF8C00;
+    transition: background 0.3s, color 0.3s;
+    text-transform: uppercase;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .agent-tab:hover {
+    background: #111;
+    color: #fff;
+  }
+  .agent-tab.selected {
+    background: #FF8C00;
+    color: #fff;
+    box-shadow: inset 0 0 8px #FFA500;
+  }
+  .top-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    border-bottom: 1px solid #FF8C00;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+  }
+  .top-panel h2 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 500;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+  }
+  .top-panel h2::before {
+    content: "⚡";
+    display: inline-block;
+    margin-right: 8px;
+    color: #FFA500;
+    font-size: 14px;
+  }
+  .top-panel h2::after {
+    content: "";
+    display: block;
+    height: 2px;
+    flex: 1;
+    margin-left: 15px;
+    background: linear-gradient(to right, #FF8C00, #FFA500);
+    border-radius: 2px;
+  }
+  .top-panel pre {
+    background: #111;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 4px;
+    color: #cfcfcf;
+    border: 1px solid #FF8C00;
+    box-shadow: 0 0 5px rgba(255,140,0,0.5);
+    margin-top: 10px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+  .chat-history-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #000;
+    padding-top: 10px;
+  }
+  .chat-history-header {
+    background: #000;
+    padding: 10px;
+    font-weight: 500;
+    border-bottom: 1px solid #FF8C00;
+    text-align: center;
+    color: #fff;
+    letter-spacing: 1px;
+    position: relative;
+  }
+  .chat-history-header::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 1px;
+    background: linear-gradient(to right, #FF8C00, #FFA500);
+  }
+  .chat-history {
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+    background: #000;
+  }
+  .chat-message {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    background: #111;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    color: #ddd;
+    border-left: 4px solid #FF8C00;
+    transition: background 0.3s, transform 0.3s;
+    position: relative;
+  }
+  .chat-message:hover {
+    background: #1c1c1c;
+    transform: translateX(2px);
+    animation: flicker 1s infinite;
+  }
+  .chat-message.system {
+    border-left: 4px solid #FF4500;
+  }
+  .chat-message.user {
+    border-left: 4px solid #FF8C00;
+  }
+  .chat-message.assistant {
+    border-left: 4px solid #FFA500;
+  }
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    background: #000;
+  }
+  .main-content-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #000;
+    padding: 10px 15px;
+    border-bottom: 1px solid #FF8C00;
+  }
+  .main-content-header h1 {
+    margin: 0;
+    font-size: 18px;
+    color: #fff;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .controls {
+    display: flex;
+    align-items: center;
+  }
+  .controls label {
+    margin-right: 5px;
+    font-size: 14px;
+    color: #bbb;
+    letter-spacing: 0.5px;
+  }
+  .controls button {
+    margin-left: 5px;
+    background: #111;
+    border: 1px solid #FF8C00;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    outline: none;
+    font-size: 14px;
+    transition: background 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+  }
+  .controls button:hover {
+    background: #FF8C00;
+    box-shadow: 0 0 5px #FFA500;
+  }
+  .main-chat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    background: #000;
+  }
+  #chatArea {
+    padding: 20px;
+    flex: 1;
+    overflow: auto;
+    background: #000;
+  }
+  .chat-input-container {
+    border-top: 1px solid #FF8C00;
+    padding: 10px;
+    background: #000;
+    display: flex;
+    gap: 10px;
+  }
+  .chat-input-container input {
+    flex: 1;
+    background: #111;
+    border: 1px solid #FF8C00;
+    color: #fff;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+  }
+  .chat-input-container button {
+    background: #111;
+    border: 1px solid #FF8C00;
+    color: #fff;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .chat-input-container button:hover {
+    background: #FF8C00;
+    box-shadow: 0 0 5px #FFA500;
+  }
+  .logs-container {
+    flex: 1;
+    overflow: auto;
+    margin-top: 10px;
+    background: #000;
+    border-top: 1px solid #FF8C00;
+    padding: 10px;
+  }
+  .log-entry {
+    border-bottom: 1px solid #111;
+    padding: 5px 0;
+    font-size: 13px;
+    transition: background 0.3s;
+  }
+  .log-entry:hover {
+    background: #111;
+    animation: flicker 1s infinite;
+  }
+  .log-entry .timestamp {
+    font-weight: bold;
+    color: #bbb;
+  }
+  .log-entry.error { color: #FF4500; }
+  .log-entry.info { color: #FF8C00; }
+  .log-entry.debug { color: #FFD700; }
+  .hidden {
+    display: none;
+  }
+  .log-level-filters {
+    display: flex;
+    gap: 8px;
+    margin-left: 10px;
+  }
+  .log-level-toggle {
+    padding: 4px 8px;
+    border: 1px solid #FF8C00;
+    background: #111;
+    color: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+  .log-level-toggle:hover {
+    background: #FF8C00;
+    box-shadow: 0 0 5px #FFA500;
+  }
+  .log-level-toggle.active {
+    background: #FF8C00;
+    border-color: #FFA500;
+    box-shadow: 0 0 5px #FFA500;
+  }
+  .raw-log-panel {
+    display: none;
+    background: #111;
+    padding: 10px;
+    border: 1px solid #FF8C00;
+    margin: 10px;
+    height: 250px;
+    overflow: auto;
+    border-radius: 4px;
+  }
+  .raw-log-panel.show {
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="top-panel">
+      <h2>System Prompt</h2>
+      <pre id="systemPromptDisplay">Loading...</pre>
+    </div>
+    <div class="chat-history-container">
+      <div class="chat-history-header">Chat History</div>
+      <div class="chat-history" id="chatHistoryContainer">Loading...</div>
+    </div>
+  </div>
+  <div class="main-container">
+    <div class="agent-tabs" id="agentTabs"></div>
+    <div class="main-content">
+      <div class="main-content-header">
+        <h1>Main Run Logic</h1>
+        <div class="controls">
+          <label for="logLevelFilter">Filter Logs:</label>
+          <div class="log-level-filters" id="logLevelFilter"></div>
+          <button id="toggleLogsButton">Hide Logs</button>
+          <button id="toggleRawLogButton">Detailed Log</button>
+        </div>
+      </div>
+      <div class="main-chat" id="mainChatContainer">
+        <div id="chatArea">Loading chat...</div>
+        <div class="chat-input-container">
+          <input type="text" id="userMessageInput" placeholder="Type your message here..." />
+          <button id="sendMessageButton">Send</button>
+        </div>
+        <div class="logs-container hidden" id="logs"></div>
+        <div class="raw-log-panel" id="rawLogPanel"></div>
+      </div>
+    </div>
+  </div>
+<script src="/debugGui.js"></script>
+</body>
+</html>
