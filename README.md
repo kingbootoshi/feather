@@ -115,3 +115,24 @@ const internetTool: ToolDefinition = {
 
 ## STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
+
+```typescript
+const structuredAgent = new FeatherAgent({
+    model: "deepseek/deepseek-chat", // REQUIRED
+    systemPrompt: "You are a helpful assistant", // REQUIRED
+    structuredOutputSchema: {
+        type: "object",
+        properties: {
+            answer: {
+                type: "string",
+                description: "A concise answer to the user's question"
+            },
+            confidence: {
+                type: "number", 
+                description: "A confidence score between 0 and 1"
+            }
+        },
+        required: ["answer", "confidence"]
+    }
+})
+```

@@ -1,6 +1,8 @@
 TO DO:
 - test structured output
+- sort agents in the GUI
 - make the output a direct string if not structured output
+- fix logging for multiple agent runs, add fallback for when there is no agentId (currently agentId is optional but is used to sort agents in the GUI)
 - implement dynamic variables
 - add the image function to message
 - add chainRunning

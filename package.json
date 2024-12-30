@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "LOG_LEVEL=debug bun run src/exampleAgent.ts | pino-pretty -c -t -l"
+    "test": "LOG_LEVEL=debug bun run src/runTests.ts | pino-pretty -c -t -l"
   },
   "keywords": [
     "ai",
@@ -19,6 +19,7 @@
   "license": "MIT",
   "dependencies": {
     "http": "^0.0.1-security",
+    "inquirer": "^8.2.6",
     "openai": "^4.77.0",
     "openpipe": "^0.40.0",
     "pino": "^8.14.0",
@@ -26,6 +27,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@types/inquirer": "^9.0.7",
     "@types/ws": "^8.5.13",
     "typescript": "^5.2.2"
   }

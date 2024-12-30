@@ -1,19 +1,37 @@
-import { Agent } from '../../agents/Agent';
-import { Logger } from '../utils/logger';
+import { FeatherAgent } from '../core/FeatherAgent';
+import { logger } from '../logger/logger';
 
-// This test will run the structuredAgent and ask a question
-// The agent must return structured JSON conforming to the schema.
-
-Logger.enable();
-Logger.setLevel('debug');
+// Test demonstrating structured output with the Feather framework
+// The agent will return a JSON response conforming to our schema
 
 (async () => {
-  const agent = new Agent({ agentName: "structuredAgent" });
+  // Create a structured output agent with a specific schema
+  const agent = new FeatherAgent({
+    agentId: "structured-test",
+    model: "deepseek/deepseek-chat",
+    systemPrompt: "You are a helpful assistant that provides accurate, structured responses.",
+    structuredOutputSchema: {
+      type: "object",
+      properties: {
+        answer: {
+          type: "string",
+          description: "A concise answer to the user's question"
+        },
+        confidence: {
+          type: "number",
+          description: "A confidence score between 0 and 1"
+        }
+      },
+      required: ["answer", "confidence"]
+    },
+    debug: true // Enable debug GUI for testing
+  });
+
   const userMessage = "What is the capital of France?";
   const result = await agent.run(userMessage);
 
   if (result.success) {
-    console.log("Agent structured response:", result.output);
+    console.log("Structured response:", result.output);
   } else {
     console.error("Agent error:", result.error);
   }

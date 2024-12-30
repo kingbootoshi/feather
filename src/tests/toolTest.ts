@@ -1,6 +1,6 @@
-import { FeatherAgent } from './core/FeatherAgent';
-import { ToolDefinition } from './types/types';
-import { logger } from './logger/logger';
+import { FeatherAgent } from '../core/FeatherAgent';
+import { ToolDefinition } from '../types/types';
+import { logger } from '../logger/logger';
 
 // Example tool: Calculator with proper OpenAI function calling setup
 const calculatorTool: ToolDefinition = {
@@ -88,5 +88,6 @@ async function main() {
 
 // Run if called directly
 if (require.main === module) {
+  logger.debug('Starting tool test');
   main().catch(err => logger.error({ err }, "Error running exampleAgent"));
 }

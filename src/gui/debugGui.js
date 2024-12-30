@@ -8,6 +8,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentAgentId = null;
   let llmRequestsData = [];
+  let socket = null;
+
+  // Connect to WebSocket for real-time updates
+  function startWebSocket() {
+    socket = new WebSocket(`ws://${window.location.host}/debug`);
+
+    socket.onopen = () => {
+      console.log("WebSocket connected");
+    };
+
+    socket.onmessage = (msgEvent) => {
+      const data = JSON.parse(msgEvent.data);
+      switch (data.type) {
+        case 'agents':
+          // If no current agent is set, pick the first from the list
+          if (!currentAgentId && data.agents.length > 0) {
+            currentAgentId = data.agents[0].id;
+            renderAgentTabs(data.agents);
+            refreshAgentData();
+          } else {
+            renderAgentTabs(data.agents);
+          }
+          break;
+
+        case 'newAgentSession':
+          // A new agent was registered on the server
+          // We can refresh the agent list or handle logic here
+          console.log("New agent session:", data.agent.id);
+          refreshAgentsAndSelectIfNone();
+          break;
+
+        case 'systemPromptUpdated':
+          if (data.agentId === currentAgentId) {
+            systemPromptDisplay.textContent = data.prompt;
+          }
+          break;
+
+        case 'chatHistoryUpdated':
+          // When new messages come in, re-fetch LLM requests so we can display the latest iteration
+          if (data.agentId === currentAgentId) {
+            fetchLlmRequests(currentAgentId).then(requests => {
+              llmRequestsData = requests || [];
+              renderChatHistory(data.messages);
+              renderMainChat(data.messages);
+            });
+          }
+          break;
+
+        case 'aiResponseUpdated':
+          // We currently refresh chat entirely on chatHistoryUpdated, so no special handling needed here
+          break;
+
+        case 'agentLogsUpdated':
+          // Not displayed by default in this UI
+          break;
+
+        default:
+          console.log("Unhandled message type:", data);
+          break;
+      }
+    };
+
+    socket.onclose = () => {
+      console.log("WebSocket closed, reconnecting in 3 seconds...");
+      setTimeout(startWebSocket, 3000);
+    };
+  }
+
+  // Begin our WebSocket connection
+  startWebSocket();
 
   async function fetchAgents() {
     try {
@@ -40,16 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function fetchAIResponse(agentId) {
-    try {
-      const resp = await fetch(`/agent/${agentId}/ai-response`);
-      if (!resp.ok) return '';
-      return await resp.text();
-    } catch (err) {
-      return '';
-    }
-  }
-
   async function fetchLlmRequests(agentId) {
     try {
       const resp = await fetch(`/agent/${agentId}/llm-requests`);
@@ -64,8 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function createShowRequestButton(iteration) {
     const button = document.createElement('button');
     button.className = 'llm-details-button';
-    button.innerText = 'Toggle Details Off';
-    
+    button.innerText = 'Toggle Details On';
+
     const detailsContainer = document.createElement('div');
     detailsContainer.className = 'llm-details-container';
 
@@ -74,33 +134,33 @@ document.addEventListener('DOMContentLoaded', () => {
       // Request Section
       const requestSection = document.createElement('div');
       requestSection.className = 'llm-section';
-      
+
       const requestTitle = document.createElement('div');
       requestTitle.className = 'llm-section-title';
       requestTitle.innerText = 'REQUEST';
-      
+
       const requestContent = document.createElement('div');
       requestContent.className = 'llm-content';
       requestContent.innerText = JSON.stringify(matchingRequest.requestData, null, 2);
-      
+
       requestSection.appendChild(requestTitle);
       requestSection.appendChild(requestContent);
-      
+
       // Response Section
       const responseSection = document.createElement('div');
       responseSection.className = 'llm-section';
-      
+
       const responseTitle = document.createElement('div');
       responseTitle.className = 'llm-section-title';
       responseTitle.innerText = 'RESPONSE';
-      
+
       const responseContent = document.createElement('div');
       responseContent.className = 'llm-content';
       responseContent.innerText = JSON.stringify(matchingRequest.responseData, null, 2);
-      
+
       responseSection.appendChild(responseTitle);
       responseSection.appendChild(responseContent);
-      
+
       detailsContainer.appendChild(requestSection);
       detailsContainer.appendChild(responseSection);
     } else {
@@ -127,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chatArea.textContent = 'No chat messages';
       return;
     }
-    let assistantCounter = 0; 
+    let assistantCounter = 0;
     const chatMessages = messages.filter(m => m.role !== 'system');
 
     chatMessages.forEach(msg => {
@@ -141,8 +201,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // If it's an assistant message, add the "Show LLM request" button
       if (msg.role === 'assistant') {
-        // We assume each assistant message corresponds to an LLM call iteration
-        // so iteration is 1-based for each assistant message
         assistantCounter++;
         const { button, detailsContainer } = createShowRequestButton(assistantCounter);
         msgGroup.appendChild(button);
@@ -201,6 +259,16 @@ document.addEventListener('DOMContentLoaded', () => {
     systemPromptDisplay.textContent = prompt || '';
     renderChatHistory(history);
     renderMainChat(history);
+  }
+
+  async function refreshAgentsAndSelectIfNone() {
+    const agents = await fetchAgents();
+    // If no current agent, pick the first in the list
+    if (!currentAgentId && agents.length > 0) {
+      currentAgentId = agents[0].id;
+    }
+    renderAgentTabs(agents);
+    refreshAgentData();
   }
 
   (async () => {

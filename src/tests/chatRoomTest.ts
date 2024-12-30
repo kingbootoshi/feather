@@ -1,46 +1,70 @@
-import { Agent } from '../../agents/Agent';
-import { createLoggerServer } from '../gui/loggerServer';
-import { Logger } from '../utils/logger';
+import { FeatherAgent } from '../core/FeatherAgent';
+import { logger } from '../logger/logger';
 
-// Enable logging before starting the test
-Logger.enable();
+/**
+ * Creates an agent with a specific personality for the chat room
+ * @param name The name of the agent
+ * @returns Configured Agent instance
+ */
+function createChatAgent(name: string): FeatherAgent {
+  return new FeatherAgent({
+    agentId: name,
+    model: "deepseek/deepseek-chat",  // Using Deepseek via OpenRouter
+    systemPrompt: `You are ${name}, a character in a dramatic conversation. 
+    You are fighting over a mysterious treasure. Be dramatic and creative, but keep responses under 100 words.
+    Maintain character consistency and reference previous context in your responses.
+    Never break character or acknowledge you are an AI.`,
+    additionalParams: {
+      temperature: 0.9,  // Higher temperature for more creative responses
+      max_tokens: 150,
+      top_p: 0.95,
+    },
+    debug: true
+  });
+}
 
-// Wrap everything in an async IIFE
-(async () => {
-  // Initialize and start logger server inside the async context
-  const loggerServer = createLoggerServer();
-  await loggerServer.start();
+/**
+ * Main function to run the chat room simulation
+ */
+async function runChatRoom() {
+  // Create two agents with different names
+  const pirate = createChatAgent("Captain Blackbeard");
+  const ninja = createChatAgent("Shadow Warrior");
 
-  // Create two instances of ChatAgent with different personalities
-  const agent1 = new Agent({ agentName: "ChatAgent" });
-  const agent2 = new Agent({ agentName: "ChatAgent" });
-
-  // Initialize the conversation with a message
+  // Initialize the conversation
   let currentMessage = "THE TREASURE IS MINE!!!";
-  
-  // Track which agent is currently responding
-  let isAgent1Turn = true;
+  let isPirateTurn = true;
 
-  // Run the conversation for 10 turns (5 exchanges between agents)
+  // Run the conversation for 10 turns
   for (let i = 0; i < 10; i++) {
-    // Select the current agent based on turn
-    const currentAgent = isAgent1Turn ? agent1 : agent2;
+    const currentAgent = isPirateTurn ? pirate : ninja;
+    const agentName = isPirateTurn ? "🏴‍☠️ Pirate" : "🥷 Ninja";
     
-    // Log which agent is responding
-    console.log(`\n${isAgent1Turn ? 'Agent 1' : 'Agent 2'} is responding to: "${currentMessage}"`);
+    logger.info(`\n${agentName} responding to: "${currentMessage}"`);
 
-    // Get the agent's response
-    const agentResult = await currentAgent.run(currentMessage);
-
-    if (agentResult.success) {
-      currentMessage = agentResult.output;
-      console.log(`${isAgent1Turn ? 'Agent 1' : 'Agent 2'} responded:`, currentMessage);
-    } else {
-      console.error(`${isAgent1Turn ? 'Agent 1' : 'Agent 2'} failed:`, agentResult.error);
+    try {
+      // Get the agent's response
+      const result = await currentAgent.run(currentMessage);
+      // Handle the response based on AgentRunResult type
+      currentMessage = result.output as string;
+      logger.info(`${agentName}: ${currentMessage}`);
+    } catch (error) {
+      logger.error(`${agentName} failed:`, error);
       break;
     }
 
-    // Switch turns between agents
-    isAgent1Turn = !isAgent1Turn;
+    // Switch turns
+    isPirateTurn = !isPirateTurn;
   }
-})();
+}
+
+// Export the run function
+export { runChatRoom };
+
+// If this file is run directly (not imported), execute the chat room
+if (require.main === module) {
+  runChatRoom().catch(error => {
+    logger.error('Chat room simulation failed:', error);
+    process.exit(1);
+  });
+}
