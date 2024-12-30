@@ -1,6 +1,10 @@
-# Feather - A lightweight agent framework
+# 🪶 Feather - A lightweight agent framework
 
-![dy_oIoS8L2SudycKG_Noa_eb99b192c6c84c0cbbd3a68d20076e20](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
+![Feather Logo](https://github.com/user-attachments/assets/be78639b-6c4b-4143-bff1-b246ec0f70f6)
+
+[![Made with Bun](https://img.shields.io/badge/Made%20with-Bun-orange.svg)](https://bun.sh)
+[![Discord](https://img.shields.io/badge/Discord-Add%20to%20Server-7289da.svg)](https://discord.gg/amR4AEjqh4)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 I don't need layers of abstraction. Base LLMs are very capable. Feather lightly defines agents with tools that auto-execute.
 
