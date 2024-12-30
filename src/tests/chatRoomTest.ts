@@ -8,7 +8,6 @@ import { logger } from '../logger/logger';
  */
 function createChatAgent(name: string): FeatherAgent {
   return new FeatherAgent({
-    agentId: name,
     model: "deepseek/deepseek-chat",  // Using Deepseek via OpenRouter
     systemPrompt: `You are ${name}, a character in a dramatic conversation. 
     You are fighting over a mysterious treasure. Be dramatic and creative, but keep responses under 100 words.

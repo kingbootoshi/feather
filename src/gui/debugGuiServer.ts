@@ -35,8 +35,23 @@ class DebugGuiServer {
         return;
       }
 
+      // Add CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      // Handle preflight requests
+      if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+      }
+
+      // Decode the URL to handle special characters in agent IDs
+      const decodedUrl = decodeURIComponent(req.url);
+
       // Serve HTML and JS
-      if (req.url === '/' || req.url === '/debugGui.html') {
+      if (decodedUrl === '/' || decodedUrl === '/debugGui.html') {
         const filePath = path.join(__dirname, 'debugGui.html');
         try {
           const content = fs.readFileSync(filePath);
@@ -48,7 +63,7 @@ class DebugGuiServer {
         }
         return;
       }
-      if (req.url === '/debugGui.js') {
+      if (decodedUrl === '/debugGui.js') {
         const filePath = path.join(__dirname, 'debugGui.js');
         try {
           const content = fs.readFileSync(filePath);
@@ -62,15 +77,18 @@ class DebugGuiServer {
       }
 
       // /agents -> list agents
-      if (req.url.startsWith('/agents')) {
+      if (decodedUrl.startsWith('/agents')) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        const agents = agentEventBus.getAllAgents().map(a => ({ id: a.id, name: a.id }));
+        const agents = agentEventBus.getAllAgents().map(a => ({ 
+          id: a.id, 
+          name: a.id.replace(/%20/g, ' ') // Clean up display name
+        }));
         res.end(JSON.stringify(agents));
         return;
       }
 
       // /agent/:id/:endpoint
-      const agentMatch = req.url.match(/^\/agent\/([^/]+)\/([^/]+)$/);
+      const agentMatch = decodedUrl.match(/^\/agent\/([^/]+)\/([^/]+)$/);
       if (agentMatch) {
         const agentId = agentMatch[1];
         const endpoint = agentMatch[2];
@@ -110,7 +128,7 @@ class DebugGuiServer {
       }
 
       // POST /agent/:id/message
-      const postMatch = req.url.match(/^\/agent\/([^/]+)\/message$/);
+      const postMatch = decodedUrl.match(/^\/agent\/([^/]+)\/message$/);
       if (postMatch && req.method === 'POST') {
         const agentId = postMatch[1];
         const agentInfo = agentEventBus.getAgent(agentId);
@@ -191,12 +209,18 @@ class DebugGuiServer {
           ws.send(JSON.stringify({ type: 'agentLogsUpdated', ...data }));
         }
       };
+      const handleLlmRequestsUpdated = (data: any) => {
+        if (ws.readyState === ws.OPEN) {
+          ws.send(JSON.stringify({ type: 'llmRequestsUpdated', ...data }));
+        }
+      };
 
       agentEventBus.on('newAgentSession', handleNewSession);
       agentEventBus.on('systemPromptUpdated', handleSystemPromptUpdated);
       agentEventBus.on('chatHistoryUpdated', handleChatHistoryUpdated);
       agentEventBus.on('aiResponseUpdated', handleAgentResponseUpdated);
       agentEventBus.on('agentLogsUpdated', handleAgentLogsUpdated);
+      agentEventBus.on('llmRequestsUpdated', handleLlmRequestsUpdated);
 
       ws.on('close', () => {
         agentEventBus.removeListener('newAgentSession', handleNewSession);
@@ -204,6 +228,7 @@ class DebugGuiServer {
         agentEventBus.removeListener('chatHistoryUpdated', handleChatHistoryUpdated);
         agentEventBus.removeListener('aiResponseUpdated', handleAgentResponseUpdated);
         agentEventBus.removeListener('agentLogsUpdated', handleAgentLogsUpdated);
+        agentEventBus.removeListener('llmRequestsUpdated', handleLlmRequestsUpdated);
       });
     });
   }

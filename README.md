@@ -8,7 +8,7 @@ Chaining agents together with Feather looks like this:
 
 ```typescript
 const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summarize it for me")
-const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData)
+const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData.output)
 ```
 
 ## DEBUG GUI 

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentAgentId = null;
   let llmRequestsData = [];
   let socket = null;
+  let activeAgents = new Map();
 
   // Connect to WebSocket for real-time updates
   function startWebSocket() {
@@ -22,14 +23,25 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = JSON.parse(msgEvent.data);
       switch (data.type) {
         case 'agents':
+          // Store agents data
+          data.agents.forEach(agent => {
+            if (!activeAgents.has(agent.id)) {
+              activeAgents.set(agent.id, {
+                id: agent.id,
+                name: agent.name,
+                chatHistory: [],
+                systemPrompt: '',
+                llmRequests: []
+              });
+            }
+          });
+          
           // If no current agent is set, pick the first from the list
           if (!currentAgentId && data.agents.length > 0) {
             currentAgentId = data.agents[0].id;
-            renderAgentTabs(data.agents);
-            refreshAgentData();
-          } else {
-            renderAgentTabs(data.agents);
           }
+          renderAgentTabs(data.agents);
+          refreshAgentData();
           break;
 
         case 'newAgentSession':
@@ -40,19 +52,25 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
 
         case 'systemPromptUpdated':
-          if (data.agentId === currentAgentId) {
-            systemPromptDisplay.textContent = data.prompt;
+          // Update stored system prompt
+          if (activeAgents.has(data.agentId)) {
+            activeAgents.get(data.agentId).systemPrompt = data.prompt;
+            if (data.agentId === currentAgentId) {
+              systemPromptDisplay.textContent = data.prompt;
+            }
           }
           break;
 
         case 'chatHistoryUpdated':
-          // When new messages come in, re-fetch LLM requests so we can display the latest iteration
-          if (data.agentId === currentAgentId) {
-            fetchLlmRequests(currentAgentId).then(requests => {
-              llmRequestsData = requests || [];
+          // Update stored chat history
+          if (activeAgents.has(data.agentId)) {
+            activeAgents.get(data.agentId).chatHistory = data.messages;
+            if (data.agentId === currentAgentId) {
+              // Use the cached LLM requests instead of fetching
+              llmRequestsData = activeAgents.get(data.agentId).llmRequests || [];
               renderChatHistory(data.messages);
               renderMainChat(data.messages);
-            });
+            }
           }
           break;
 
@@ -62,6 +80,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         case 'agentLogsUpdated':
           // Not displayed by default in this UI
+          break;
+
+        case 'llmRequestsUpdated':
+          if (activeAgents.has(data.agentId)) {
+            // Update the stored LLM requests
+            activeAgents.get(data.agentId).llmRequests = data.requests;
+            
+            // If this is the current agent, update the display
+            if (data.agentId === currentAgentId) {
+              llmRequestsData = data.requests;
+              // Re-render chat to update request details
+              const cachedAgent = activeAgents.get(currentAgentId);
+              if (cachedAgent) {
+                renderMainChat(cachedAgent.chatHistory);
+              }
+            }
+          }
           break;
 
         default:
@@ -92,27 +127,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchSystemPrompt(agentId) {
     try {
-      const resp = await fetch(`/agent/${agentId}/system-prompt`);
+      const encodedId = encodeURIComponent(agentId);
+      const resp = await fetch(`/agent/${encodedId}/system-prompt`);
       if (!resp.ok) return '';
       return await resp.text();
     } catch (err) {
+      console.error('Error fetching system prompt:', err);
       return '';
     }
   }
 
   async function fetchChatHistory(agentId) {
     try {
-      const resp = await fetch(`/agent/${agentId}/chat-history`);
+      const encodedId = encodeURIComponent(agentId);
+      const resp = await fetch(`/agent/${encodedId}/chat-history`);
       if (!resp.ok) return [];
       return await resp.json();
     } catch (err) {
+      console.error('Error fetching chat history:', err);
       return [];
     }
   }
 
   async function fetchLlmRequests(agentId) {
     try {
-      const resp = await fetch(`/agent/${agentId}/llm-requests`);
+      const encodedId = encodeURIComponent(agentId);
+      const resp = await fetch(`/agent/${encodedId}/llm-requests`);
       if (!resp.ok) return [];
       return await resp.json();
     } catch (err) {
@@ -242,6 +282,16 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAgentId = a.id;
         document.querySelectorAll('.agent-tab').forEach(t => t.classList.remove('selected'));
         tab.classList.add('selected');
+        
+        // Use cached data first
+        const cachedAgent = activeAgents.get(a.id);
+        if (cachedAgent) {
+          systemPromptDisplay.textContent = cachedAgent.systemPrompt;
+          llmRequestsData = cachedAgent.llmRequests || [];
+          renderChatHistory(cachedAgent.chatHistory);
+          renderMainChat(cachedAgent.chatHistory);
+        }
+        
         refreshAgentData();
       });
       agentTabs.appendChild(tab);
@@ -287,7 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
       userMessageInput.value = '';
       if (!msg) return;
       try {
-        await fetch(`/agent/${currentAgentId}/message`, {
+        const encodedId = encodeURIComponent(currentAgentId);
+        await fetch(`/agent/${encodedId}/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: msg })

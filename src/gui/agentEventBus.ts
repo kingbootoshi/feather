@@ -16,6 +16,7 @@ interface AgentInfo {
   aiResponse: string | null;
   logs: string[];
   llmRequests: LlmRequestRecord[];
+  lastActive: number;
 }
 
 class AgentEventBus extends EventEmitter {
@@ -34,17 +35,29 @@ class AgentEventBus extends EventEmitter {
   }
 
   public registerAgent(agentId: string, agentInstance: FeatherAgent) {
+    // Clean the agent ID to ensure consistent lookup
+    const cleanId = decodeURIComponent(agentId);
+    const existingAgent = this.agents.get(cleanId);
+    
     const agentInfo: AgentInfo = {
-      id: agentId,
+      id: cleanId,
       agentInstance,
       systemPrompt: agentInstance['config']?.systemPrompt || '',
       chatHistory: agentInstance.getMessages() || [],
       aiResponse: null,
       lastError: null,
       logs: [],
-      llmRequests: []
+      llmRequests: [],
+      lastActive: Date.now()
     };
-    this.agents.set(agentId, agentInfo);
+    
+    if (existingAgent) {
+      agentInfo.chatHistory = existingAgent.chatHistory;
+      agentInfo.llmRequests = existingAgent.llmRequests;
+      agentInfo.logs = existingAgent.logs;
+    }
+    
+    this.agents.set(cleanId, agentInfo);
     this.emit('newAgentSession', { agent: agentInfo });
   }
 
@@ -60,6 +73,7 @@ class AgentEventBus extends EventEmitter {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
       agentInfo.systemPrompt = prompt;
+      agentInfo.lastActive = Date.now();
       this.emit('systemPromptUpdated', { agentId, prompt });
     }
   }
@@ -68,6 +82,7 @@ class AgentEventBus extends EventEmitter {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
       agentInfo.chatHistory = messages;
+      agentInfo.lastActive = Date.now();
       this.emit('chatHistoryUpdated', { agentId, messages });
     }
   }
@@ -102,9 +117,16 @@ class AgentEventBus extends EventEmitter {
   public storeLlmRequest(agentId: string, record: { iteration: number; requestData: any }) {
     const agentInfo = this.agents.get(agentId);
     if (!agentInfo) return;
+    
     agentInfo.llmRequests.push({
       iteration: record.iteration,
       requestData: record.requestData
+    });
+    
+    // Emit event with the full requests array
+    this.emit('llmRequestsUpdated', { 
+      agentId, 
+      requests: agentInfo.llmRequests 
     });
   }
 
@@ -119,7 +141,19 @@ class AgentEventBus extends EventEmitter {
     const existing = agentInfo.llmRequests.find(r => r.iteration === iteration);
     if (existing) {
       existing.responseData = record.responseData;
+      
+      // Emit event with the full requests array
+      this.emit('llmRequestsUpdated', { 
+        agentId, 
+        requests: agentInfo.llmRequests 
+      });
     }
+  }
+
+  public getActiveAgents(): AgentInfo[] {
+    const oneHourAgo = Date.now() - (60 * 60 * 1000);
+    return Array.from(this.agents.values())
+      .filter(agent => agent.lastActive > oneHourAgo);
   }
 }
 

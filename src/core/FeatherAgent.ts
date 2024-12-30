@@ -21,6 +21,8 @@ interface FeatherAgentConfig {
   debug?: boolean; // if true, start debug GUI
 }
 
+let agentCounter = 0;
+
 export class FeatherAgent {
   private messages: Message[] = [];
   private tools: ToolDefinition[] = [];
@@ -29,11 +31,15 @@ export class FeatherAgent {
   private agentRegistered: boolean = false;
   private agentLog: string[] = []; // store raw logs for debugging
   private llmCallIteration: number = 0; // track the iteration count
+  private agentId: string; // New field to store the ID
 
   constructor(config: FeatherAgentConfig) {
     this.config = config;
     this.tools = config.tools || [];
 
+    // Generate unique ID if not provided
+    this.agentId = config.agentId || `agent-${++agentCounter}`;
+    
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error("No OpenRouter API key provided in config or environment!");
     }
@@ -67,7 +73,7 @@ export class FeatherAgent {
     // If debug is enabled, start the debug GUI server (if not already started) and register this agent
     if (config.debug) {
       debugGuiServer.startServer(); 
-      agentEventBus.registerAgent(this.getAgentId(), this);
+      agentEventBus.registerAgent(this.agentId, this);
       this.agentRegistered = true;
     }
   }
@@ -301,7 +307,7 @@ export class FeatherAgent {
   }
 
   private getAgentId(): string {
-    return this.config.agentId || 'feather-agent';
+    return this.agentId;
   }
 
   /**
