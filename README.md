@@ -129,7 +129,7 @@ const internetTool: ToolDefinition = {
 };
 ```
 
-## STRUCTURED OUTPUT
+### STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
 
 ```typescript

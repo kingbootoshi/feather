@@ -2,7 +2,8 @@ TO DO:
 - test structured output
 - implement dynamic variables to system prompt
 - add the 'add image' logic to addUserMessage
-- add chainRunning
+- add option for tools to NOT auto execute (tool useages given in outputs)
+- add chainRunning 
 
 THOUGHTS:
 - if an agent chains it's own tools, how can we provide back the first output to a user?
