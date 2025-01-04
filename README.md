@@ -92,11 +92,26 @@ I find that cognition is a great way to get increased accuracy and consistency w
 ### TOOL USE
 Tool calls (also known as function calling) allow you to give an LLM access to external tools.
 
-Feather expects your tool to be defined WITH the function execution and output ready to go. This way, when giving an agent a tool, the agent can execute the tool, get the results saved in its chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
+Feather expects your tool to be defined WITH the function execution and output ready to go. By default, tools auto-execute - when giving an agent a tool, the agent will execute the tool, get the results saved in its chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
 
-Parallel tool calls are supported.
+However, you can disable auto-execution by setting `autoExecuteTools: false` in the agent config. In this case, tool calls will be available in the `functionCalls` property of the response, allowing for manual handling:
 
-Setting up a tool function call following OpenAI structure + Excecution
+```typescript
+const manualAgent = new FeatherAgent({
+  systemPrompt: "You are a math tutor who can do calculations",
+  tools: [calculatorTool],
+  autoExecuteTools: false // Disable auto-execution
+});
+
+const res = await manualAgent.run("What is 42 * 73?");
+console.log("Agent response:", res.output);
+console.log("Tool calls to handle:", res.functionCalls);
+// functionCalls contains array of: { functionName: string, functionArgs: any }
+```
+
+Parallel tool calls are supported in both auto and manual execution modes.
+
+Setting up a tool function call following OpenAI structure + Execution
 ```typescript
 const internetTool: ToolDefinition = {
   type: "function",

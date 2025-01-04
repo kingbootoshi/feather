@@ -33,9 +33,9 @@ async function main() {
     }
     logger.info({ output: res1.output }, "First time check");
 
-    // Wait for 30 seconds
-    logger.info("Waiting 30 seconds...");
-    await delay(30000);
+    // Wait for 10 seconds
+    logger.info("Waiting 10 seconds...");
+    await delay(10000);
 
     // Second run
     logger.info("Second run - checking time again");

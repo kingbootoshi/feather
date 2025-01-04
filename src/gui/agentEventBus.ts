@@ -69,7 +69,18 @@ class AgentEventBus extends EventEmitter {
     }
     
     this.agents.set(cleanId, agentInfo);
-    this.emit('newAgentSession', { agent: agentInfo });
+
+    // Emit only serializable data for the new agent session
+    this.emit('newAgentSession', { 
+      agent: {
+        id: cleanId,
+        systemPrompt: agentInfo.systemPrompt,
+        chatHistory: agentInfo.chatHistory,
+        logs: agentInfo.logs,
+        llmRequests: agentInfo.llmRequests,
+        lastActive: agentInfo.lastActive
+      }
+    });
   }
 
   /**

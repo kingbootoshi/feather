@@ -8,7 +8,7 @@ import { logger } from '../logger/logger';
  */
 function createChatAgent(name: string): FeatherAgent {
   return new FeatherAgent({
-    model: "deepseek/deepseek-chat",  // Using Deepseek via OpenRouter
+    model: "inflatebot/mn-mag-mell-r1",  // Using Deepseek via OpenRouter
     systemPrompt: `You are ${name}, a character in a dramatic conversation. 
     You are fighting over a mysterious treasure. Be dramatic and creative, but keep responses under 100 words.
     Maintain character consistency and reference previous context in your responses.
