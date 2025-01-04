@@ -37,15 +37,15 @@ import { logger } from '../logger/logger';
 
   if (result.success) {
     // Log full structured response
-    console.log("Full structured response:", result.output);
+    logger.info("Full structured response:", result.output);
     
     // result.output is now typed as { answer: string; confidence: number }
     const answer = result.output.answer;
     const confidence = result.output.confidence;
     
-    console.log("Just the answer:", answer);
-    console.log("Just the confidence:", confidence);
+    logger.info("Just the answer:", answer);
+    logger.info("Just the confidence:", confidence);
   } else {
-    console.error("Agent error:", result.error);
+    logger.error("Agent error:", result.error);
   }
 })();

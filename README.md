@@ -66,22 +66,22 @@ Optional:
 - `cognition` (boolean) - Enables `<think>, <plan>, <speak>` XML tags
 - `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
 - `debug` (boolean) - Enables debug GUI monitoring
-
+- `dynamicVariables` (object) - Functions that return strings, executed on each .run() call
 
 ### MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
 
 ```typescript
 // Adding messages
-agent.addUserMessage("Hello, how are you? Do you like my hat?", {images: ["https://example.com/blueHat.jpg"]}) //image optional
+agent.addUserMessage("Hello, how are you? Do you like my hat?", {images: ["https://example.com/blueHat.jpg"]}) // image optional
 agent.addAssistantMessage("I am fine, thank you! Nice blue hat! Looks good on you!")
 
 // Loading in custom message history
-const history = [{role: "user", content: "Hello, how are you? Do you like my hat?", image: "https://example.com/blueHat.jpg"}, {role: "assistant", content: "I am fine, thank you! Nice blue hat! Looks good on you!"}] //array of messages
-agent.loadHistory(history) //loads the chat history from an array of messages
+const history = [{role: "user", content: "Hello, how are you? Do you like my hat?", images: [{url: "https://example.com/blueHat.jpg"}]}, {role: "assistant", content: "I am fine, thank you! Nice blue hat! Looks good on you!"}] // array of messages
+agent.loadHistory(history) // loads the chat history from an array of messages
 
 // Extracting current message history
-agent.extractHistory() //returns the chat history as an array of messages
+agent.extractHistory() // returns the chat history as an array of messages
 ```
 
 ### COGNITION
@@ -187,3 +187,28 @@ If you are using structured output instead of tools, the .run() function will re
     console.error("Agent error:", result.error);
   }
 ```
+
+### DYNAMIC VARIABLES
+Dynamic variables allow you to inject real-time data into your agent's system prompt. These variables are functions that return strings and are executed every time the agent's `.run()` method is called. This ensures your agent always has access to the most up-to-date information.
+
+```typescript
+// Create an agent with dynamic variables
+const agent = new FeatherAgent({
+  systemPrompt: "You are a helpful assistant that knows the current time.",
+  model: "openai/gpt-4o",
+  dynamicVariables: {
+    currentTime: () => new Date().toLocaleString(), // Updates every .run() call
+    activeUsers: () => getActiveUserCount(), // Custom function example
+  }
+});
+
+// The dynamic variables will be injected into the system prompt under "## DYNAMIC VARIABLES"
+// currentTime: 12/25/2023, 3:45:00 PM
+// activeUsers: 1,234
+```
+
+Dynamic variables are perfect for:
+- Injecting real-time data (time, date, metrics)
+- System status information
+- User context that changes frequently
+- Any data that needs to be fresh each time the agent runs

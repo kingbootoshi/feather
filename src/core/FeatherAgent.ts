@@ -23,6 +23,15 @@ interface FeatherAgentConfig<TOutput = string | Record<string, any>> {
   structuredOutputSchema?: Record<string, any>;
   additionalParams?: Record<string, any>;
   debug?: boolean; // if true, start debug GUI
+
+  /**
+   * Optional dynamic variables that are functions returning strings.
+   * They will be placed into the system prompt under "## DYNAMIC VARIABLES"
+   * each time run() is called.
+   */
+  dynamicVariables?: {
+    [variableName: string]: () => string;
+  };
 }
 
 /**
@@ -41,22 +50,25 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
   private llmCallIteration: number = 0;
   private agentId: string;
 
+  // Keep base system prompt separate from dynamic content
+  private baseSystemPrompt: string;
+
   constructor(config: FeatherAgentConfig<TOutput>) {
     this.config = config;
     this.tools = config.tools || [];
     this.agentId = config.agentId || `agent-${++agentCounter}`;
-    
+
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error("No OpenRouter API key provided in config or environment!");
     }
     if (!process.env.OPENPIPE_API_KEY) {
       logger.warn("No OpenPipe API key provided in config or environment! The agent will run but no data will be captured.");
     }
-    
+
     if (config.cognition && config.structuredOutputSchema) {
       throw new Error("Cannot use both cognition and structuredOutputSchema - they are mutually exclusive.");
     }
-    
+
     logger.info("Initializing FeatherAgent...");
 
     this.openai = new OpenAI({
@@ -69,16 +81,49 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       })
     });
 
-    let finalSystemPrompt = config.systemPrompt;
+    // Store the base system prompt
+    this.baseSystemPrompt = config.systemPrompt;
+
+    // We initially push a placeholder system message; will be updated before each run()
+    this.messages.push({ role: 'system', content: "" });
+
+    if (config.debug) {
+      debugGuiServer.startServer();
+      agentEventBus.registerAgent(this.agentId, this);
+      this.agentRegistered = true;
+    }
+  }
+
+  /**
+   * Builds the complete system prompt, injecting dynamic variables if provided.
+   */
+  private buildSystemPrompt(): string {
+    let finalSystemPrompt = this.baseSystemPrompt;
+
+    // If dynamicVariables exist, generate them
+    if (this.config.dynamicVariables) {
+      finalSystemPrompt += "\n\n## DYNAMIC VARIABLES - Variables updated in your system prompt every single time you are executed.\n";
+      const keys = Object.keys(this.config.dynamicVariables);
+      for (const key of keys) {
+        const fn = this.config.dynamicVariables[key];
+        try {
+          const val = fn();
+          finalSystemPrompt += `${key}: ${val}\n`;
+        } catch (err: any) {
+          logger.error(err, `Error executing dynamic variable: ${key}`);
+          finalSystemPrompt += `${key}: [Error retrieving dynamic variable]\n`;
+        }
+      }
+    }
 
     // If cognition is enabled, instruct the LLM to produce <think>,<plan>,<speak> tags.
-    if (config.cognition) {
+    if (this.config.cognition) {
       const instructions = `\n\n# OUTPUT FORMAT\n\nYou are capable of cognition. To think, plan, and speak before executing tools, YOU MUST output the following schema:\n<think>\n*your internal thoughts*\n</think>\n<plan>\n*your plan*\n</plan>\n<speak>\n*what you say to the user*\n</speak>`;
       finalSystemPrompt += instructions;
-    } 
+    }
     // If structured output is enabled, format and append the schema instructions
-    else if (config.structuredOutputSchema) {
-      const schema = config.structuredOutputSchema.schema || config.structuredOutputSchema;
+    else if (this.config.structuredOutputSchema) {
+      const schema = this.config.structuredOutputSchema.schema || this.config.structuredOutputSchema;
       const schemaStr = JSON.stringify(schema.properties || {}, null, 2);
       const requiredStr = JSON.stringify(schema.required || []);
       const exampleOutput = Object.keys(schema.properties || {}).reduce((acc, key) => {
@@ -90,13 +135,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       finalSystemPrompt += instructions;
     }
 
-    this.messages.push({ role: 'system', content: finalSystemPrompt });
-
-    if (config.debug) {
-      debugGuiServer.startServer();
-      agentEventBus.registerAgent(this.agentId, this);
-      this.agentRegistered = true;
-    }
+    return finalSystemPrompt;
   }
 
   /**
@@ -105,7 +144,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    */
   public addUserMessage(content: string, options?: { images?: string[] }) {
     logger.debug({ content, images: options?.images }, "FeatherAgent.addUserMessage");
-    
+
     // Format the content according to OpenRouter's schema
     const formattedContent: ContentPart[] = [
       {
@@ -126,11 +165,11 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       );
     }
 
-    this.messages.push({ 
-      role: 'user', 
-      content: formattedContent 
+    this.messages.push({
+      role: 'user',
+      content: formattedContent
     });
-    
+
     this.logEntry(`USER: ${content}${options?.images ? ` (with ${options.images.length} image${options.images.length > 1 ? 's' : ''})` : ''}`);
     if (this.agentRegistered) {
       agentEventBus.updateChatHistory(this.getAgentId(), this.messages);
@@ -161,12 +200,18 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * Returns an AgentRunResult with a TOutput-typed output if structured schema is used.
    */
   public async run(userInput?: string): Promise<AgentRunResult<TOutput>> {
+    // If user provided new input at run time, add it
     if (userInput) {
       this.addUserMessage(userInput);
     }
 
+    // Before calling the LLM, update the system message with any dynamic variables
+    const newSystemPrompt = this.buildSystemPrompt();
+    // Ensure the first message is always the system message
+    this.messages[0].content = newSystemPrompt;
+
     if (this.agentRegistered) {
-      agentEventBus.updateSystemPrompt(this.getAgentId(), this.config.systemPrompt);
+      agentEventBus.updateSystemPrompt(this.getAgentId(), newSystemPrompt);
     }
 
     let iterationCount = 0;
@@ -206,10 +251,10 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         }),
         ...this.config.additionalParams
       };
-      
+
       logger.debug({ callParams }, "FeatherAgent.run - callParams");
 
-      logger.debug({ 
+      logger.debug({
         event: 'llm_request',
         model: callParams.model,
         messages: callParams.messages,
@@ -228,7 +273,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       let response;
       try {
         response = await this.openai.chat.completions.create(callParams);
-        logger.debug({ 
+        logger.debug({
           event: 'llm_response',
           response_id: response.id,
           model: response.model,

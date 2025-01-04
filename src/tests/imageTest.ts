@@ -1,5 +1,4 @@
 import { FeatherAgent } from '../core/FeatherAgent';
-import { ToolDefinition } from '../types/types';
 import { logger } from '../logger/logger';
 
 async function main() {

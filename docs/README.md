@@ -1,1 +1,0 @@
-These docs are only for AI to reference when building out the framework.

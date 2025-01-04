@@ -1,10 +1,8 @@
 TO DO:
-- implement dynamic variables to system prompt
 - add option for tools to NOT auto execute (tool usages given in outputs, for manual handling of function calls)
 - i think cognition being off doesn't work so fix that
 - add chainRunning (option for agent to run again on it's own, chaining tool calls together)
-
-low priority:
+- add unit tests in a single file to ensure everything works
 - add talking to an agent in the chatbox gui if enabled
 
 THOUGHTS:
