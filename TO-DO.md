@@ -1,9 +1,11 @@
 TO DO:
-- add the 'image' logic to addUserMessage, for automatically adding images to a message
 - implement dynamic variables to system prompt
 - add option for tools to NOT auto execute (tool usages given in outputs, for manual handling of function calls)
 - i think cognition being off doesn't work so fix that
 - add chainRunning (option for agent to run again on it's own, chaining tool calls together)
+
+low priority:
+- add talking to an agent in the chatbox gui if enabled
 
 THOUGHTS:
 - if an agent chains it's own tools, how can we provide back the first output to a user?

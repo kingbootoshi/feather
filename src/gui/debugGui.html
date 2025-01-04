@@ -8,12 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
-  /* 
-    The following CSS creates a two-column layout:
-    - Left sidebar for system prompt and chat history
-    - Right main container for the main conversation and input
-    The color palette is a muted cream and blue theme.
-  */
   :root {
     --bg-primary: #F4F1EA;
     --bg-secondary: #E8E4D9;
@@ -37,10 +31,6 @@
     position: relative;
   }
 
-  /* 
-    Animated grid background effect 
-    using two layered gradients for subtle movement.
-  */
   body::before {
     content: "";
     position: absolute;
@@ -68,7 +58,6 @@
     box-shadow: 0 0 20px var(--shadow-color);
   }
 
-  /* Custom scrollbar styling */
   ::-webkit-scrollbar {
     width: 10px;
   }
@@ -136,7 +125,6 @@
     box-shadow: inset 0 -2px 0 var(--accent-dark);
   }
 
-  /* System Prompt box on the left sidebar */
   .top-panel {
     display: flex;
     flex-direction: column;
@@ -196,7 +184,6 @@
     flex: 1;
   }
 
-  /* Sidebar chat history section */
   .chat-history-container {
     flex: 1;
     display: flex;
@@ -272,7 +259,6 @@
     background: var(--bg-secondary);
   }
 
-  /* Main container styling */
   .main-content {
     flex: 1;
     display: flex;
@@ -310,7 +296,6 @@
     position: relative;
   }
 
-  /* The chat area where messages are displayed on the right side */
   #chatArea {
     padding: 20px;
     flex: 1;
@@ -322,7 +307,6 @@
     padding-bottom: 90px;
   }
 
-  /* Fixed input container at the bottom of the main chat */
   .chat-input-container {
     background: var(--bg-primary);
     border-top: 1px solid var(--border-color);
@@ -370,7 +354,6 @@
     box-shadow: 0 2px 4px var(--shadow-color);
   }
 
-  /* Button for toggling LLM request/response details */
   .llm-details-button {
     background: var(--accent-blue);
     color: white;
@@ -391,7 +374,6 @@
     box-shadow: 0 2px 4px var(--shadow-color);
   }
 
-  /* Hidden container that shows request/response details on toggle */
   .llm-details-container {
     margin-top: 10px;
     padding: 15px;
@@ -437,6 +419,41 @@
     color: var(--text-primary);
     line-height: 1.4;
   }
+
+  /* New class for uniformly sizing images */
+  .chat-image {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+    margin: 5px 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+  }
+
+  /* New class for image containers */
+  .chat-images-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+  }
+
+  /* Update chat-image class */
+  .chat-image {
+    width: 200px;
+    height: 200px;
+    object-fit: cover;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: transform 0.2s ease;
+  }
+
+  .chat-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px var(--shadow-color);
+  }
+
 </style>
 </head>
 <body>

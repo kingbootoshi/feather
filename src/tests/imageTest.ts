@@ -7,13 +7,13 @@ async function main() {
   const imageAgent = new FeatherAgent({
     agentId: "image-agent-v1",
     systemPrompt: "You are a fun AI agent that speaks English.",
-    model: "qwen/qvq-72b-preview",
+    model: "openai/gpt-4o",
     debug: true // <--- enabling debug mode
   });
 
   // Example usage of the image agent
   try {
-    imageAgent.addUserMessage("Who is stronger?", { images: ["https://static.wikia.nocookie.net/onepiece/images/6/6d/Monkey_D._Luffy_Anime_Post_Timeskip_Infobox.png/revision/latest?cb=20240306200817", "https://static.wikia.nocookie.net/naruto-ultimate-ninja-storm/images/e/ea/Naruto.png/revision/latest?cb=20210319180515"] });
+    imageAgent.addUserMessage("You HAVE to tell me who is stronger from the images in your opinion. YOU HAVE TO PICK ONE, NO EXCEPTION!", { images: ["https://s4.anilist.co/file/anilistcdn/character/large/b17-IazKGogQwJ1p.png", "https://static.vecteezy.com/system/resources/thumbnails/024/104/961/small_2x/manga-anime-pirate-japan-character-cute-cartoon-free-vector.jpg"] });
     const res = await imageAgent.run();
     if (!res.success) {
       logger.error(`Agent error: ${res.error || 'unknown'}`);

@@ -13,6 +13,49 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeAgents = new Map();
 
   /**
+   * Helper function to render the content of a message (which can be text or images).
+   */
+  function renderMessageContent(content) {
+    // If content is just a string, return as-is
+    if (!content) return '';
+    if (typeof content === 'string') {
+      return content;
+    }
+    // Otherwise, content might be an array of objects (text or image_url)
+    if (Array.isArray(content)) {
+      let result = '';
+      let images = [];
+      
+      // First collect text and gather images
+      content.forEach(item => {
+        if (item.type === 'text') {
+          result += item.text;
+        } else if (item.type === 'image_url') {
+          const url = item.image_url?.url || '';
+          if (url) {
+            images.push(url);
+          }
+        }
+      });
+
+      // Add text first
+      result = result.trim();
+      
+      // Then add images container if we have images
+      if (images.length > 0) {
+        result += '<div class="chat-images-container">';
+        images.forEach(url => {
+          result += `<img class="chat-image" src="${url}" alt="chat image"/>`;
+        });
+        result += '</div>';
+      }
+      
+      return result;
+    }
+    return '';
+  }
+
+  /**
    * Initiates a WebSocket connection to receive real-time updates from the server.
    * Reconnects automatically if the socket closes.
    */
@@ -256,7 +299,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const div = document.createElement('div');
       div.classList.add('chat-message', msg.role);
-      div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${msg.content || ''}`;
+      // Use our helper to render the content
+      const renderedContent = renderMessageContent(msg.content);
+      div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${renderedContent}`;
       msgGroup.appendChild(div);
 
       // If it's an assistant message, attach a toggle button for request details
@@ -283,7 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     messages.forEach(msg => {
       const div = document.createElement('div');
       div.classList.add('chat-message', msg.role);
-      div.textContent = `${msg.role.toUpperCase()}: ${msg.content || ''}`;
+      const renderedContent = renderMessageContent(msg.content);
+      div.innerHTML = `${msg.role.toUpperCase()}: ${renderedContent}`;
       chatHistoryContainer.appendChild(div);
     });
   }
