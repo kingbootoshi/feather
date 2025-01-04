@@ -73,7 +73,7 @@ You can modify an agent's message history with the following methods:
 
 ```typescript
 // Adding messages
-agent.addUserMessage("Hello, how are you? Do you like my hat?", {image: "https://example.com/blueHat.jpg"}) //image optional
+agent.addUserMessage("Hello, how are you? Do you like my hat?", {images: ["https://example.com/blueHat.jpg"]}) //image optional
 agent.addAssistantMessage("I am fine, thank you! Nice blue hat! Looks good on you!")
 
 // Loading in custom message history
