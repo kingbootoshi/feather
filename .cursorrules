@@ -1,112 +1,235 @@
-# Feather - lightweight agent framework
+# FEATHER DOCS - A lightweight agent framework
 
-Create an agent and run it with agent.run("input text"). The result returns the agent's response.
+I don't need layers of abstraction. Base LLMs are very capable. Feather lightly defines agents with tools that auto-execute.
 
-- **Base**: OpenRouter + OpenPipe, use any model & save training data.
-- **Simple Config**: Choose model & system prompt. System prompt can manage dynamic variables, which are updated every .run() execution
-- **Cognition**: option to enable XML tags which allow the agent to generate thinking/planning tags before executing that are parsed
-- **Structured Output**: Option over tools.
-- **Tools**: Can equip with tools, automatically handle executing tools, adding results to agent chat history, then re-running the agent to provide the user the result, or even continue with another tool until it's done
-- **Control message history** - add messages (with images), load chat history, or extract chat history for chat manipulation & management
-
-Chaining agents together look like:
+Chaining agents together with Feather looks like this:
 
 ```typescript
-const timelineData = twitterAgent.run("Get me 50 tweets from my AI list and 50 tweets from my homepage")
-const summary = summaryAgent.run('What is going on in my timeline? ' + timelineData)
+const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summarize it for me")
+const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData.output)
 ```
 
-## OPENROUTER
-We use OpenRouter for LLM calls, which uses the Openai SDK 1:1. While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can easily switch as the base SDK is OpenAI.
+## CREATING AN AGENT
 
-## OPENPIPE
-We use OpenPipe for collecting training data of agents. This is optional, but HIGHLY recommended for any agent that is used in production. Your data is GOLD, keep it safe!
-
-To use ANY model, simply replace the model parameter
+Creating an agent is easy:
 
 ```typescript
-import OpenAI from "openai"
-
-const openai = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
+const internetAgent = new FeatherAgent({
+    model: "deepseek/deepseek-chat",
+    systemPrompt: "You are a helpful assistant that can browse the internet", 
+    tools: [internetTool],
 })
+```
 
-async function main() {
-  const completion = await openai.chat.completions.create({
-    model: "openai/gpt-4o-mini", // REPLACE WITH ANY MODEL OPENROUTER SUPPORTS, CAN BE LLAMA, CLAUDE, DEEPSEEK, ETC.
-    messages: [
-      {
-        "role": "user",
-        "content": "What is the meaning of life?"
-      }
-    ]
-  })
+Running an agent is easier:
 
-  console.log(completion.choices[0].message)
+```typescript
+const result = internetAgent.run("What's the latest quantum chip that dropped? How does it advance AI?")
+logger.info("Internet Agent said:", result.output)
+```
+
+The output comes from the .output property of the agent run.
+Agent run has the following properties:
+
+```typescript
+interface AgentRunResult<TOutput> {
+  // Whether the agent run completed successfully
+  success: boolean;
+
+  // The main output from the agent run
+  // Type depends on agent configuration:
+  // - string for normal text output
+  // - TOutput for structured output (if structuredOutputSchema is used)
+  // - Record<string, any> for JSON responses
+  output: TOutput;
+
+  // Only present if there was an error during the run
+  error?: string;
+
+  // Only present if autoExecuteTools is false and the agent wants to use tools
+  functionCalls?: Array<{
+    functionName: string;    // Name of the tool/function to call
+    functionArgs: any;       // Arguments for the tool/function
+  }>;
 }
-main()
 ```
 
-Creating an agent is simple:
+### FeatherAgent Parameters
 
-```typescript
-const agent = new Agent({
-model: "openai/gpt-4o-mini", // REQUIRED
-parameters: {
-    temperature: 0.5,
-    max_tokens: 1000,
-    top_p: 0.95,
-    frequency_penalty: 0,
-    presence_penalty: 0,
-}, // OPTIONAL
-systemPrompt: "You are a helpful assistant", // REQUIRED
-tools: [internetTool], // OPTIONAL, TAKES DOMINANCE OVER STRUCTURED OUTPUT
-structuredOutput: {
-    type: "json_object",
-    properties: {
-        summary: { type: "string" },
-        news: { type: "string" },
-    }
-}, // OPTIONAL, ONLY IF TOOLS ARE NOT USED !! 
-cognition: true, // OPTIONAL, ENABLES THINK/PLAN/SPEAK XML TAG PROCESS
-})
-```
+Required:
+- `systemPrompt` (string) - Core instructions that define the agent's behavior
 
-Running an agent is simpler:
+Optional:
+- `model` (string) - LLM model to use (defaults to "openai/gpt-4o")
+- `agentId` (string) - Unique ID for the agent (auto-generates if not provided) 
+- `tools` (ToolDefinition[]) - Tools the agent can use (cannot use with structuredOutputSchema)
+- `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools)
+- `cognition` (boolean) - Enables `<think>, <plan>, <speak>` XML tags (cannot use with structuredOutputSchema)
+- `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
+- `debug` (boolean) - Enables debug GUI monitoring
+- `dynamicVariables` (object) - Functions that return strings, executed on each .run() call
 
-```typescript
-const result = agent.run("What is the mitochondria of the cell?")
-console.log(result.content)
-
-// result is an object with the following properties:
-// content: string - the agent's response, parse if structured output is used
-// tool_calls: any[] - the function calls used by the agent for that call
-```
-
+### MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
 
 ```typescript
-agent.addUserMessage("Hello, how are you? Do you like my hat?", {image: "https://example.com/blueHat.jpg"}) //image optional
+// Adding messages
+agent.addUserMessage("Hello, how are you? Do you like my hat?", {images: ["https://example.com/blueHat.jpg"]}) // image optional
 agent.addAssistantMessage("I am fine, thank you! Nice blue hat! Looks good on you!")
-agent.extractHistory() //returns the chat history as an array of messages
-agent.loadHistory(history) //loads the chat history from an array of messages
+
+// Loading in custom message history
+const history = [{role: "user", content: "Hello, how are you? Do you like my hat?", images: [{url: "https://example.com/blueHat.jpg"}]}, {role: "assistant", content: "I am fine, thank you! Nice blue hat! Looks good on you!"}] // array of messages
+agent.loadHistory(history) // loads the chat history from an array of messages
+
+// Extracting current message history
+agent.extractHistory() // returns the chat history as an array of messages
 ```
 
-## COGNITION
-Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. <think>...</think>, <plan>...</plan>, <speak>...</speak> are the tags used. <speak> tags are parsed and returned as the agent's response.
+### COGNITION
+Cognition is the process of the agent thinking, planning, and speaking. It is enabled by the cognition property in the agent config. What is does is add forced instructions at the end of the agent's system prompt to use XML tags to think, plan, and speak. These XML tags are parsed and executed by the agent. `<think>...</think>`, `<plan>...</plan>`, `<speak>...</speak>` are the tags used. `<speak>` tags are parsed and returned as the agent's response.
 
-## TOOL USE
-Tool calls (also known as function calling) allow you to give an LLM access to external tools. The LLM does not call the tools directly. Instead, it suggests the tool to call. Usually, it's up to the user to call the tool separately and provide the results back to the LLM. Finally, the LLM formats the response into an answer to the user's original question.
+I find that cognition is a great way to get increased accuracy and consistency with tool usage.
 
-Using Feather, we expect your tool to be defined WITH the function execution and output ready to go. This way, when giving an agent a tool, the agent can execute the tool, get the results saved back in it's chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
+### TOOL USE
+Tool calls (also known as function calling) allow you to give an LLM access to external tools.
 
-Parallel tool calls are supported.
+Feather expects your tool to be defined WITH the function execution and output ready to go. By default, tools auto-execute - when giving an agent a tool, the agent will execute the tool, get the results saved in its chat history, then re-run itself to provide the user a detailed response with the information from the tool result.
 
-## STRUCTURED OUTPUT
+However, you can disable auto-execution by setting `autoExecuteTools: false` in the agent config. In this case, tool calls will be available in the `functionCalls` property of the response, allowing for manual handling:
+
+```typescript
+const manualAgent = new FeatherAgent({
+  systemPrompt: "You are a math tutor who can do calculations",
+  tools: [calculatorTool],
+  autoExecuteTools: false // Disable auto-execution
+});
+
+const res = await manualAgent.run("What is 42 * 73?");
+console.log("Agent response:", res.output);
+console.log("Tool calls to handle:", res.functionCalls);
+// functionCalls contains array of: { functionName: string, functionArgs: any }
+```
+
+Parallel tool calls are supported in both auto and manual execution modes.
+
+Setting up a tool function call following OpenAI structure + Execution
+```typescript
+const internetTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "search_internet",
+    description: "Search the internet for up-to-date information using Perplexity AI",
+    parameters: {
+      type: "object", 
+      properties: {
+        query: {
+          type: "string",
+          description: "The search query to look up information about"
+        }
+      },
+      required: ["query"]
+    }
+  },
+  // Execute function to search using Perplexity AI
+  async execute(args: Record<string, any>): Promise<{ result: string }> {
+    logger.info({ args }, "Executing internet search tool");
+    
+    try {
+      const params = typeof args === 'string' ? JSON.parse(args) : args;
+      if (typeof params.query !== 'string') {
+        throw new Error("Query must be a valid string");
+      }
+
+      // Call Perplexity API to get search results
+      const searchResult = await queryPerplexity(params.query);
+      
+      return { result: searchResult };
+
+    } catch (error) {
+      logger.error({ error, args }, "Internet search tool error");
+      throw error;
+    }
+  }
+};
+```
+
+### STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.
 
-## LOGGING
+```typescript
+  // Create a structured output agent with a specific schema
+  // Note the generic type <{ answer: string; confidence: number }>
+  const agent = new FeatherAgent<{ answer: string; confidence: number }>({
+    agentId: "structured-test",
+    model: "openai/gpt-4o",
+    systemPrompt: "You are a helpful assistant that provides accurate, structured responses.",
+    structuredOutputSchema: {
+      name: "weather",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          answer: {
+            type: "string", 
+            description: "A concise answer to the user's question"
+          },
+          confidence: {
+            type: "number",
+            description: "A confidence score between 0 and 1"
+          }
+        },
+        required: ["answer", "confidence"],
+        additionalProperties: false
+      }
+    },
+    debug: true
+  });
+
+  const userMessage = "What is the capital of France?";
+  // The agent should produce a structured JSON answer
+  const result = await agent.run(userMessage);
+
+  if (result.success) {
+    // Log full structured response
+    console.log("Full structured response:", result.output);
+    
+    // result.output is now typed as { answer: string; confidence: number }
+    const answer = result.output.answer;
+    const confidence = result.output.confidence;
+    
+    console.log("Just the answer:", answer);
+    console.log("Just the confidence:", confidence);
+  } else {
+    console.error("Agent error:", result.error);
+  }
+```
+
+### DYNAMIC VARIABLES
+Dynamic variables allow you to inject real-time data into your agent's system prompt. These variables are functions that return strings and are executed every time the agent's `.run()` method is called. This ensures your agent always has access to the most up-to-date information.
+
+```typescript
+// Create an agent with dynamic variables
+const agent = new FeatherAgent({
+  systemPrompt: "You are a helpful assistant that knows the current time.",
+  model: "openai/gpt-4o",
+  dynamicVariables: {
+    currentTime: () => new Date().toLocaleString(), // Updates every .run() call
+    activeUsers: () => getActiveUserCount(), // Custom function example
+  }
+});
+
+// The dynamic variables will be injected into the system prompt under "## DYNAMIC VARIABLES"
+// currentTime: 12/25/2023, 3:45:00 PM
+// activeUsers: 1,234
+```
+
+Dynamic variables are perfect for:
+- Injecting real-time data (time, date, metrics)
+- System status information
+- User context that changes frequently
+- Any data that needs to be fresh each time the agent runs
+
+# LOGGING
 
 We use the PINO logger for logging with the pino-pretty plugin. Please log everything with depth
 
@@ -114,8 +237,8 @@ We use the PINO logger for logging with the pino-pretty plugin. Please log every
 - Use debug to log more detailed and full outputs
 - Use error to log errors
 
-## COMMENTING
+# COMMENTING
 We must leave DETAILED comments in the code explaining the flow of the program and how we move step by step.
 
-## DEBUG TERMINAL GUI
+# DEBUG TERMINAL GUI
 Feather comes with an optional GUI that displays the agent's current system prompt, the messages in it's chat history, the user input and the agent's output, and any detailed information about the run.

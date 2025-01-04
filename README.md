@@ -53,6 +53,53 @@ const result = internetAgent.run("What's the latest quantum chip that dropped? H
 logger.info("Internet Agent said:", result.output)
 ```
 
+The output comes from the .output property of the agent run.
+Agent run has the following properties:
+
+```typescript
+interface AgentRunResult<TOutput> {
+  // Whether the agent run completed successfully
+  success: boolean;
+
+  // The main output from the agent run
+  // Type depends on agent configuration:
+  // - string for normal text output
+  // - TOutput for structured output (if structuredOutputSchema is used)
+  // - Record<string, any> for JSON responses
+  output: TOutput;
+
+  // Only present if there was an error during the run
+  error?: string;
+
+  // Only present if autoExecuteTools is false and the agent wants to use tools
+  functionCalls?: Array<{
+    functionName: string;    // Name of the tool/function to call
+    functionArgs: any;       // Arguments for the tool/function
+  }>;
+}
+```
+
+Example usage:
+```typescript
+const result = await agent.run("What's the weather?");
+
+if (result.success) {
+  // Access the main output
+  console.log(result.output);
+  
+  // If tools were requested but not auto-executed
+  if (result.functionCalls) {
+    for (const call of result.functionCalls) {
+      console.log(`Tool requested: ${call.functionName}`);
+      console.log(`With args:`, call.functionArgs);
+    }
+  }
+} else {
+  // Handle any errors
+  console.error(`Error: ${result.error}`);
+}
+```
+
 ### FeatherAgent Parameters
 
 Required:
