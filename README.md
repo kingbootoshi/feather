@@ -22,7 +22,7 @@ const videoScript = videoScriptAgent.run('Create me a video script based on toda
 ## DEBUG GUI 
 Feather comes with an optional GUI that displays detailed log of the agent's system prompt, message history, and LLM requests/responses that went into each assistant message.
 
-<img width="1728" alt="image" src="https://github.com/user-attachments/assets/0bc53f8d-0654-47b7-866a-33c59b642e4f" />
+<img width="1727" alt="image" src="https://github.com/user-attachments/assets/079a3a13-3d58-4882-abe1-5d28aa818334" />
 
 ## OPENROUTER
 We use OpenRouter for LLM calls, which uses the OpenAI SDK 1:1. This allows us to use ANY model with ease! While it is a centralized service, it is the easiest, most cost effective way to get access to the latest models instantly and switch models with ease. Also, they accept crypto. If OpenRouter ever goes down, we can switch without trouble as the base SDK is OpenAI.

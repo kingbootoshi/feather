@@ -307,8 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
       roleText.textContent = msg.role.toUpperCase() + ': ';
       div.appendChild(roleText);
 
-      if (msg.role === 'assistant') {
-        // Parse XML tags for assistant messages
+      if (msg.role === 'assistant' && msg.content.includes('</think>')) {
+        // Parse XML tags for assistant messages that contain XML tags
         const content = msg.content.replace(/\n/g, ' ');
         const tags = {
           think: content.match(/<think>(.*?)<\/think>/)?.[1] || '',
@@ -352,10 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
           div.appendChild(speakContent);
         }
       } else {
-        // For non-assistant messages, just show the content as is
-        const contentSpan = document.createElement('span');
-        contentSpan.textContent = renderMessageContent(msg.content);
-        div.appendChild(contentSpan);
+        // For non-XML messages, render content normally including HTML
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = renderMessageContent(msg.content);
+        div.appendChild(contentDiv);
       }
       
       msgGroup.appendChild(div);
@@ -389,11 +389,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const roleText = document.createTextNode(msg.role.toUpperCase() + ': ');
       div.appendChild(roleText);
       
-      // Create content with preserved XML tags
-      const renderedContent = renderMessageContent(msg.content);
-      const contentSpan = document.createElement('span');
-      contentSpan.textContent = renderedContent;
-      div.appendChild(contentSpan);
+      if (msg.role === 'assistant' && msg.content.includes('</think>')) {
+        // Keep XML tags as text for assistant messages with XML
+        const contentSpan = document.createElement('span');
+        contentSpan.textContent = msg.content.replace(/\n/g, ' ');
+        div.appendChild(contentSpan);
+      } else {
+        // For non-XML messages, render content normally including HTML
+        const contentDiv = document.createElement('div');
+        contentDiv.innerHTML = renderMessageContent(msg.content);
+        div.appendChild(contentDiv);
+      }
       
       chatHistoryContainer.appendChild(div);
     });
