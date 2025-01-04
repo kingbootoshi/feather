@@ -74,7 +74,7 @@ async function main() {
 
   // Example usage of the agent with a math question
   try {
-    const res = await mathAgent.run("What is 3 multiplied by 7?");
+    const res = await mathAgent.run("What is 1294 multiplied by 9966?");
     if (!res.success) {
       logger.error(`Agent error: ${res.error || 'unknown'}`);
       return;

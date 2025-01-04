@@ -16,10 +16,11 @@ document.addEventListener('DOMContentLoaded', () => {
    * Helper function to render the content of a message (which can be text or images).
    */
   function renderMessageContent(content) {
-    // If content is just a string, return as-is
+    // If content is just a string, return as-is, preserving XML tags but replacing newlines with spaces
     if (!content) return '';
     if (typeof content === 'string') {
-      return content;
+      // Replace newlines with spaces while preserving XML tags
+      return content.replace(/\n/g, ' ');
     }
     // Otherwise, content might be an array of objects (text or image_url)
     if (Array.isArray(content)) {
@@ -29,7 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // First collect text and gather images
       content.forEach(item => {
         if (item.type === 'text') {
-          result += item.text;
+          // Replace newlines with spaces while preserving XML tags
+          result += item.text.replace(/\n/g, ' ');
         } else if (item.type === 'image_url') {
           const url = item.image_url?.url || '';
           if (url) {
@@ -299,9 +301,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const div = document.createElement('div');
       div.classList.add('chat-message', msg.role);
-      // Use our helper to render the content
-      const renderedContent = renderMessageContent(msg.content);
-      div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${renderedContent}`;
+      
+      // Add role header
+      const roleText = document.createElement('strong');
+      roleText.textContent = msg.role.toUpperCase() + ': ';
+      div.appendChild(roleText);
+
+      if (msg.role === 'assistant') {
+        // Parse XML tags for assistant messages
+        const content = msg.content.replace(/\n/g, ' ');
+        const tags = {
+          think: content.match(/<think>(.*?)<\/think>/)?.[1] || '',
+          plan: content.match(/<plan>(.*?)<\/plan>/)?.[1] || '',
+          speak: content.match(/<speak>(.*?)<\/speak>/)?.[1] || ''
+        };
+
+        if (tags.think) {
+          const thinkHeader = document.createElement('div');
+          thinkHeader.className = 'tag-header';
+          thinkHeader.textContent = 'THINK:';
+          div.appendChild(thinkHeader);
+
+          const thinkContent = document.createElement('div');
+          thinkContent.className = 'tag-content';
+          thinkContent.textContent = tags.think.trim();
+          div.appendChild(thinkContent);
+        }
+
+        if (tags.plan) {
+          const planHeader = document.createElement('div');
+          planHeader.className = 'tag-header';
+          planHeader.textContent = 'PLAN:';
+          div.appendChild(planHeader);
+
+          const planContent = document.createElement('div');
+          planContent.className = 'tag-content';
+          planContent.textContent = tags.plan.trim();
+          div.appendChild(planContent);
+        }
+
+        if (tags.speak) {
+          const speakHeader = document.createElement('div');
+          speakHeader.className = 'tag-header';
+          speakHeader.textContent = 'SPEAK:';
+          div.appendChild(speakHeader);
+
+          const speakContent = document.createElement('div');
+          speakContent.className = 'tag-content';
+          speakContent.textContent = tags.speak.trim();
+          div.appendChild(speakContent);
+        }
+      } else {
+        // For non-assistant messages, just show the content as is
+        const contentSpan = document.createElement('span');
+        contentSpan.textContent = renderMessageContent(msg.content);
+        div.appendChild(contentSpan);
+      }
+      
       msgGroup.appendChild(div);
 
       // If it's an assistant message, attach a toggle button for request details
@@ -328,8 +384,17 @@ document.addEventListener('DOMContentLoaded', () => {
     messages.forEach(msg => {
       const div = document.createElement('div');
       div.classList.add('chat-message', msg.role);
+      
+      // Create role text
+      const roleText = document.createTextNode(msg.role.toUpperCase() + ': ');
+      div.appendChild(roleText);
+      
+      // Create content with preserved XML tags
       const renderedContent = renderMessageContent(msg.content);
-      div.innerHTML = `${msg.role.toUpperCase()}: ${renderedContent}`;
+      const contentSpan = document.createElement('span');
+      contentSpan.textContent = renderedContent;
+      div.appendChild(contentSpan);
+      
       chatHistoryContainer.appendChild(div);
     });
   }

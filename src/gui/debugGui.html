@@ -259,6 +259,34 @@
     background: var(--bg-secondary);
   }
 
+  /* New styles for XML tag formatting */
+  .chat-message .tag-header {
+    font-weight: bold;
+    color: var(--accent-dark);
+    margin-top: 10px;
+    font-size: 0.9em;
+    letter-spacing: 0.5px;
+  }
+
+  .chat-message .tag-content {
+    margin-left: 20px;
+    margin-bottom: 10px;
+    font-style: italic;
+    color: var(--text-primary);
+    padding: 5px 0;
+    border-left: 2px solid var(--accent-blue);
+    padding-left: 10px;
+    background: var(--bg-primary);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .chat-message.assistant > strong {
+    display: block;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
   .main-content {
     flex: 1;
     display: flex;
