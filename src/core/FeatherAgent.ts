@@ -4,7 +4,8 @@ import {
   Message,
   ToolDefinition,
   FunctionCall,
-  AgentRunResult
+  AgentRunResult,
+  ContentPart
 } from '../types/types';
 import { ChatCompletionMessageParam, ResponseFormatJSONSchema } from 'openai/resources';
 import { agentEventBus } from '../gui/agentEventBus';
@@ -100,11 +101,37 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
 
   /**
    * Adds a user (human) message to the conversation.
+   * Optionally, an array of images can be included.
    */
-  public addUserMessage(content: string) {
-    logger.debug({ content }, "FeatherAgent.addUserMessage");
-    this.messages.push({ role: 'user', content });
-    this.logEntry(`USER: ${content}`);
+  public addUserMessage(content: string, options?: { images?: string[] }) {
+    logger.debug({ content, images: options?.images }, "FeatherAgent.addUserMessage");
+    
+    // Format the content according to OpenRouter's schema
+    const formattedContent: ContentPart[] = [
+      {
+        type: 'text',
+        text: content
+      }
+    ];
+
+    // Add images if provided
+    if (options?.images) {
+      formattedContent.push(
+        ...options.images.map(url => ({
+          type: 'image_url' as const,
+          image_url: {
+            url
+          }
+        }))
+      );
+    }
+
+    this.messages.push({ 
+      role: 'user', 
+      content: formattedContent 
+    });
+    
+    this.logEntry(`USER: ${content}${options?.images ? ` (with ${options.images.length} image${options.images.length > 1 ? 's' : ''})` : ''}`);
     if (this.agentRegistered) {
       agentEventBus.updateChatHistory(this.getAgentId(), this.messages);
     }

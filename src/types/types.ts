@@ -6,7 +6,7 @@ export type Role = 'system' | 'assistant' | 'user' | 'tool';
  */
 export interface Message {
   role: Role;
-  content?: string;
+  content?: string | ContentPart[];
   name?: string;
 }
 
@@ -43,3 +43,19 @@ export interface AgentRunResult<TOutput = string | Record<string, any>> {
   error?: string;
   functionCalls?: FunctionCall[];
 }
+
+// New types for content parts
+export interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+export interface ImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail?: string;
+  };
+}
+
+export type ContentPart = TextContent | ImageContent;
