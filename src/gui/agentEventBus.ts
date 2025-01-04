@@ -7,9 +7,9 @@ interface LlmRequestRecord {
   responseData?: any;
 }
 
-interface AgentInfo {
+interface AgentInfo<T = any> {
   id: string;
-  agentInstance: FeatherAgent;
+  agentInstance: FeatherAgent<T>;
   systemPrompt: string;
   chatHistory: any[];
   lastError: string | null;
@@ -25,7 +25,7 @@ interface AgentInfo {
  * Components like the debug GUI subscribe to these events.
  */
 class AgentEventBus extends EventEmitter {
-  private agents: Map<string, AgentInfo> = new Map();
+  private agents: Map<string, AgentInfo<any>> = new Map();
   private static instance: AgentEventBus;
   
   private constructor() {
@@ -44,12 +44,12 @@ class AgentEventBus extends EventEmitter {
    * @param agentId Unique identifier for the agent.
    * @param agentInstance The FeatherAgent instance.
    */
-  public registerAgent(agentId: string, agentInstance: FeatherAgent) {
+  public registerAgent<T>(agentId: string, agentInstance: FeatherAgent<T>) {
     // Clean the agent ID to ensure consistent lookup
     const cleanId = decodeURIComponent(agentId);
     const existingAgent = this.agents.get(cleanId);
     
-    const agentInfo: AgentInfo = {
+    const agentInfo: AgentInfo<T> = {
       id: cleanId,
       agentInstance,
       systemPrompt: agentInstance['config']?.systemPrompt || '',
@@ -76,14 +76,14 @@ class AgentEventBus extends EventEmitter {
    * Retrieve agent information by ID.
    * @param agentId ID of the agent to fetch.
    */
-  public getAgent(agentId: string): AgentInfo | undefined {
-    return this.agents.get(agentId);
+  public getAgent<T>(agentId: string): AgentInfo<T> | undefined {
+    return this.agents.get(agentId) as AgentInfo<T> | undefined;
   }
 
   /**
    * Return an array of all known agents.
    */
-  public getAllAgents(): AgentInfo[] {
+  public getAllAgents(): AgentInfo<any>[] {
     return Array.from(this.agents.values());
   }
 
@@ -183,7 +183,7 @@ class AgentEventBus extends EventEmitter {
   /**
    * Returns agents that have been active within the last hour (for demonstration).
    */
-  public getActiveAgents(): AgentInfo[] {
+  public getActiveAgents(): AgentInfo<any>[] {
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
     return Array.from(this.agents.values())
       .filter(agent => agent.lastActive > oneHourAgo);

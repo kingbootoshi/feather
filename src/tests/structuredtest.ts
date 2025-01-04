@@ -2,10 +2,10 @@ import { FeatherAgent } from '../core/FeatherAgent';
 import { logger } from '../logger/logger';
 
 // Test demonstrating structured output with the Feather framework
-// The agent will return a JSON response conforming to our schema
 (async () => {
   // Create a structured output agent with a specific schema
-  const agent = new FeatherAgent({
+  // Note the generic type <{ answer: string; confidence: number }>
+  const agent = new FeatherAgent<{ answer: string; confidence: number }>({
     agentId: "structured-test",
     model: "openai/gpt-4o",
     systemPrompt: "You are a helpful assistant that provides accurate, structured responses.",
@@ -28,7 +28,7 @@ import { logger } from '../logger/logger';
         additionalProperties: false
       }
     },
-    debug: true // Enable debug GUI for testing
+    debug: true
   });
 
   const userMessage = "What is the capital of France?";
@@ -39,7 +39,7 @@ import { logger } from '../logger/logger';
     // Log full structured response
     console.log("Full structured response:", result.output);
     
-    // Access specific fields
+    // result.output is now typed as { answer: string; confidence: number }
     const answer = result.output.answer;
     const confidence = result.output.confidence;
     

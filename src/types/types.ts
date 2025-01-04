@@ -34,12 +34,12 @@ export interface FunctionCall {
 
 /**
  * Represents the result of an Agent run.
- * success indicates if the agent reached a conclusion, output holds the final data,
- * error contains any error message, and functionCalls track invoked tools.
+ * TOutput is a generic representing the structured output type if used,
+ * or a string/Record<string, any> by default.
  */
-export interface AgentRunResult {
+export interface AgentRunResult<TOutput = string | Record<string, any>> {
   success: boolean;
-  output: string | Record<string, any>;
+  output: TOutput;
   error?: string;
   functionCalls?: FunctionCall[];
 }
