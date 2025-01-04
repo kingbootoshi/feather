@@ -8,7 +8,8 @@ import {
   ToolDefinition,
   FunctionCall,
   AgentRunResult,
-  ContentPart
+  ContentPart,
+  OpenRouterParameters
 } from '../types/types';
 import { ChatCompletionMessageParam, ResponseFormatJSONSchema } from 'openai/resources';
 import { agentEventBus } from '../gui/agentEventBus';
@@ -25,7 +26,7 @@ interface FeatherAgentConfig<TOutput = string | Record<string, any>> {
   cognition?: boolean;                                  // Enable think/plan/speak XML tags
   tools?: ToolDefinition[];                             // Array of tools the agent can use
   structuredOutputSchema?: Record<string, any>;         // JSON schema for structured output
-  additionalParams?: Record<string, any>;               // Additional parameters for LLM API calls
+  additionalParams?: OpenRouterParameters;              // OpenRouter parameters for controlling model behavior
   debug?: boolean;                                      // Enable debug GUI for monitoring
 
   /**

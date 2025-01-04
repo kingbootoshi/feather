@@ -59,3 +59,58 @@ export interface ImageContent {
 }
 
 export type ContentPart = TextContent | ImageContent;
+
+/**
+ * OpenRouter specific parameters for controlling model behavior.
+ * Documentation: https://openrouter.ai/docs/parameters
+ */
+export interface OpenRouterParameters {
+  /** Temperature (0.0 to 2.0) - Controls response variety. Default: 1.0 */
+  temperature?: number;
+  
+  /** Top P (0.0 to 1.0) - Limits token choices to top percentage. Default: 1.0 */
+  top_p?: number;
+  
+  /** Top K (0 or above) - Limits token choices to top K options. Default: 0 */
+  top_k?: number;
+  
+  /** Frequency Penalty (-2.0 to 2.0) - Adjusts frequency-based token repetition. Default: 0.0 */
+  frequency_penalty?: number;
+  
+  /** Presence Penalty (-2.0 to 2.0) - Adjusts presence-based token repetition. Default: 0.0 */
+  presence_penalty?: number;
+  
+  /** Repetition Penalty (0.0 to 2.0) - Reduces input token repetition. Default: 1.0 */
+  repetition_penalty?: number;
+  
+  /** Min P (0.0 to 1.0) - Minimum token probability threshold. Default: 0.0 */
+  min_p?: number;
+  
+  /** Top A (0.0 to 1.0) - Dynamic token filtering based on highest probability. Default: 0.0 */
+  top_a?: number;
+  
+  /** Seed (integer) - For deterministic sampling */
+  seed?: number;
+  
+  /** Max Tokens (1 or above) - Maximum tokens to generate */
+  max_tokens?: number;
+  
+  /** Logit Bias - Token ID to bias value (-100 to 100) mapping */
+  logit_bias?: Record<string, number>;
+  
+  /** Return log probabilities of output tokens */
+  logprobs?: boolean;
+  
+  /** Number of most likely tokens (0-20) to return per position */
+  top_logprobs?: number;
+
+  /** Controls tool calling behavior:
+   * - 'none': Model will not call any tool, only generates message
+   * - 'auto': Model can choose between message or tool calls
+   * - 'required': Model must call one or more tools
+   * Can also specify a particular tool via {type: "function", function: {name: "my_function"}} */
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function', function: { name: string } };
+
+  /** Enable or disable parallel tool calls (default is true) */
+  parallel_tool_calls?: boolean;
+}
