@@ -6,7 +6,7 @@ import {
   FunctionCall,
   AgentRunResult
 } from '../types/types';
-import { ChatCompletionMessageParam } from 'openai/resources';
+import { ChatCompletionMessageParam, ResponseFormatJSONSchema } from 'openai/resources';
 import { agentEventBus } from '../gui/agentEventBus';
 import { debugGuiServer } from '../gui/debugGuiServer';
 
@@ -55,6 +55,11 @@ export class FeatherAgent {
       logger.warn("No OpenPipe API key provided in config or environment! The agent will run but no data will be captured.");
     }
     
+    // Validate that cognition and structuredOutputSchema are not used together
+    if (config.cognition && config.structuredOutputSchema) {
+      throw new Error("Cannot use both cognition and structuredOutputSchema - they are mutually exclusive.");
+    }
+    
     logger.info("Initializing FeatherAgent...");
 
     // Create an OpenAI instance with optional OpenPipe integration if key is present
@@ -69,16 +74,35 @@ export class FeatherAgent {
     });
 
     // Add initial system prompt to messages.
+    let finalSystemPrompt = config.systemPrompt;
+
     // If cognition is enabled, we instruct the LLM to produce <think>,<plan>,<speak> tags.
     if (config.cognition) {
-      const instructions = `\n\n#OUTPUT FORMAT\n\nYou are capable of cognition. To think, plan, and speak before executing tools, YOU MUST output the following schema:\n<think>\n*your internal thoughts*\n</think>\n<plan>\n*your plan*\n</plan>\n<speak>\n*what you say to the user*\n</speak>`;
-      this.messages.push({
-        role: 'system',
-        content: config.systemPrompt + instructions
-      });
-    } else {
-      this.messages.push({ role: 'system', content: config.systemPrompt });
+      const instructions = `\n\n# OUTPUT FORMAT\n\nYou are capable of cognition. To think, plan, and speak before executing tools, YOU MUST output the following schema:\n<think>\n*your internal thoughts*\n</think>\n<plan>\n*your plan*\n</plan>\n<speak>\n*what you say to the user*\n</speak>`;
+      finalSystemPrompt += instructions;
+    } 
+    // If structured output is enabled, format and append the schema instructions
+    else if (config.structuredOutputSchema) {
+      // Extract the actual schema object
+      const schema = config.structuredOutputSchema.schema || config.structuredOutputSchema;
+      
+      // Format the schema properties for display
+      const schemaStr = JSON.stringify(schema.properties || {}, null, 2);
+      // Format required fields as a single line
+      const requiredStr = JSON.stringify(schema.required || []);
+      
+      // Create example output structure based on schema properties
+      const exampleOutput = Object.keys(schema.properties || {}).reduce((acc, key) => {
+        acc[key] = "...";
+        return acc;
+      }, {} as Record<string, string>);
+      const exampleStr = JSON.stringify(exampleOutput);
+      
+      const instructions = `\n\n# OUTPUT FORMAT\nYou MUST follow this schema:\n\n${schemaStr}\n\nRequired fields: ${requiredStr}\n\nYour output MUST look exactly like this:\n${exampleStr}`;
+      finalSystemPrompt += instructions;
     }
+
+    this.messages.push({ role: 'system', content: finalSystemPrompt });
 
     // If debug mode is true, start the debug GUI server and register the agent with the event bus
     if (config.debug) {
@@ -168,8 +192,16 @@ export class FeatherAgent {
         })) as ChatCompletionMessageParam[],
         tools: toolDefs,
         tool_choice: 'auto' as const,
+        ...(this.config.structuredOutputSchema && {
+          response_format: {
+            type: "json_schema",
+            json_schema: this.config.structuredOutputSchema
+          } as ResponseFormatJSONSchema
+        }),
         ...this.config.additionalParams
       };
+      
+      logger.debug({ callParams }, "FeatherAgent.run - callParams");
 
       // Log the request for debugging
       logger.debug({ 

@@ -7,21 +7,26 @@ import { logger } from '../logger/logger';
   // Create a structured output agent with a specific schema
   const agent = new FeatherAgent({
     agentId: "structured-test",
-    model: "deepseek/deepseek-chat",
+    model: "openai/gpt-4o",
     systemPrompt: "You are a helpful assistant that provides accurate, structured responses.",
     structuredOutputSchema: {
-      type: "object",
-      properties: {
-        answer: {
-          type: "string",
-          description: "A concise answer to the user's question"
+      name: "weather",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          answer: {
+            type: "string", 
+            description: "A concise answer to the user's question"
+          },
+          confidence: {
+            type: "number",
+            description: "A confidence score between 0 and 1"
+          }
         },
-        confidence: {
-          type: "number",
-          description: "A confidence score between 0 and 1"
-        }
-      },
-      required: ["answer", "confidence"]
+        required: ["answer", "confidence"],
+        additionalProperties: false
+      }
     },
     debug: true // Enable debug GUI for testing
   });
@@ -31,7 +36,15 @@ import { logger } from '../logger/logger';
   const result = await agent.run(userMessage);
 
   if (result.success) {
-    console.log("Structured response:", result.output);
+    // Log full structured response
+    console.log("Full structured response:", result.output);
+    
+    // Access specific fields
+    const answer = result.output.answer;
+    const confidence = result.output.confidence;
+    
+    console.log("Just the answer:", answer);
+    console.log("Just the confidence:", confidence);
   } else {
     console.error("Agent error:", result.error);
   }

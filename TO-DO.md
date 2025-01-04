@@ -1,5 +1,4 @@
 TO DO:
-- test structured output
 - implement dynamic variables to system prompt
 - add the 'image' logic to addUserMessage, for automatically adding images to a message
 - add option for tools to NOT auto execute (tool usages given in outputs, for manual handling of function calls)
