@@ -108,12 +108,15 @@ Required:
 Optional:
 - `model` (string) - LLM model to use (defaults to "openai/gpt-4o")
 - `agentId` (string) - Unique ID for the agent (auto-generates if not provided) 
+- `dynamicVariables` (object) - Functions that return strings, executed on each .run() call
 - `tools` (ToolDefinition[]) - Tools the agent can use (cannot use with structuredOutputSchema)
-- `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools)
+- `autoExecuteTools` (boolean) - Whether to auto-execute tool calls (default: true)
 - `cognition` (boolean) - Enables `<think>, <plan>, <speak>` XML tags
+- `chainRun` (boolean) - Enables chain running mode with finish_run tool
+- `maxChainIterations` (number) - Maximum iterations for chain running (default: 5)
+- `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools or cognition)
 - `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
 - `debug` (boolean) - Enables debug GUI monitoring
-- `dynamicVariables` (object) - Functions that return strings, executed on each .run() call
 
 ### MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
@@ -198,6 +201,37 @@ const internetTool: ToolDefinition = {
   }
 };
 ```
+
+### CHAIN RUNNING
+Chain running allows an agent to execute multiple tools in sequence until it decides to finish. This is useful for complex tasks that require multiple steps or tool calls.
+
+The agent is given a `finish_run` tool that it must call to finish, with a 'final_response' string property that the agent fills out to output it's final response to the .run() command.
+
+```typescript
+const researchAgent = new FeatherAgent({
+  systemPrompt: "You are a research assistant that can search and summarize information.",
+  tools: [searchTool, summarizeTool],
+  cognition: true, // <--- cognition + chain running is bread and butter
+  chainRun: true, // Enable chain running
+  maxChainIterations: 10 // Optional: Set max iterations (default: 5)
+});
+
+// The agent will automatically:
+// 1. Execute tools in sequence
+// 2. Process each tool's results
+// 3. Decide if more tool calls are needed
+// 4. Call finish_run when complete
+const research = await researchAgent.run("Research the latest developments in quantum computing");
+console.log(research.output); // Final summarized research
+```
+
+When chainRun is enabled:
+- The agent gains access to a `finish_run` tool
+- The agent MUST call `finish_run` to complete its execution
+- The agent can execute up to maxChainIterations tools (default: 5)
+- The final response from `finish_run` becomes the .output of run()
+
+This ensures consistent and reliable multi-step tool execution flows.
 
 ### STRUCTURED OUTPUT
 If you are using structured output instead of tools, the .run() function will return the structured output as a JSON object.

@@ -12,6 +12,7 @@ import {
   OpenRouterParameters
 } from '../types/types';
 import { ChatCompletionMessageParam, ResponseFormatJSONSchema } from 'openai/resources';
+import { ChatCompletionToolChoiceOption } from 'openai/resources/chat/completions';
 import { agentEventBus } from '../gui/agentEventBus';
 import { debugGuiServer } from '../gui/debugGuiServer';
 
@@ -43,7 +44,47 @@ interface FeatherAgentConfig<TOutput = string | Record<string, any>> {
   dynamicVariables?: {
     [variableName: string]: () => string;
   };
+
+  /**
+   * If true, the agent must keep calling tools until it calls the finish_run tool,
+   * or until maxChainIterations is reached.
+   */
+  chainRun?: boolean;
+
+  /**
+   * The maximum number of LLM call iterations to allow when chainRun is true.
+   * Defaults to 5 if not set.
+   */
+  maxChainIterations?: number;
 }
+
+/**
+ * Tool used to end a chain-run. The final_response is returned to the user as the run() output.
+ */
+const finishRunTool: ToolDefinition = {
+  type: "function",
+  function: {
+    name: "finish_run",
+    description: "Call this tool to complete your chain-run and give a FINAL response to the user",
+    parameters: {
+      type: "object",
+      properties: {
+        final_response: {
+          type: "string",
+          description: "The final answer that the user is given"
+        }
+      },
+      required: ["final_response"],
+      additionalProperties: false
+    }
+  },
+  async execute(args: Record<string, any>): Promise<{ result: string }> {
+    // The agent won't actually "execute" anything here, but we return the final response in "result".
+    const params = typeof args === 'string' ? JSON.parse(args) : args;
+    const final = params.final_response || "";
+    return { result: final };
+  }
+};
 
 /**
  * FeatherAgent is responsible for orchestrating conversation flows with an LLM,
@@ -107,6 +148,16 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
     // We initially push a placeholder system message; will be updated before each run()
     this.messages.push({ role: 'system', content: "" });
 
+    // If chainRun is enabled, add the finish_run tool automatically
+    if (this.config.chainRun) {
+      const alreadyHasFinishRun = this.tools.some(
+        t => t.function && t.function.name === "finish_run"
+      );
+      if (!alreadyHasFinishRun) {
+        this.tools.push(finishRunTool);
+      }
+    }
+
     if (config.debug) {
       debugGuiServer.startServer();
       agentEventBus.registerAgent(this.agentId, this);
@@ -119,9 +170,10 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * 1. Base system prompt
    * 2. Dynamic variables (if any)
    * 3. Output format instructions (for cognition or structured output)
+   * 4. Chain run instructions if chainRun is true
    * @returns The complete system prompt string
    */
-  private buildSystemPrompt(): string {
+  private buildSystemPrompt(iteration?: number): string {
     let finalSystemPrompt = this.baseSystemPrompt;
 
     // If dynamicVariables exist, generate them
@@ -137,6 +189,19 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           logger.error(err, `Error executing dynamic variable: ${key}`);
           finalSystemPrompt += `${key}: [Error retrieving dynamic variable]\n`;
         }
+      }
+    }
+
+    // If chainRun is enabled, add instructions
+    if (this.config.chainRun) {
+      const maxIters = this.config.maxChainIterations ?? 5;
+      finalSystemPrompt += `\n\n## CHAIN RUNNING ENABLED\n`;
+      finalSystemPrompt += `Chain run is enabled. This means you can run again and again for ${maxIters} iterations until completion. This allows you to execute a tool, wait for the result, and decide if you need to execute a different tool.\n`;
+      finalSystemPrompt += `If you are content with your run, then you can end the chain-run by calling the finish_run tool. The information you put in the 'final_response' parameter is the output given to the user.\n`;
+
+      // If we are about to hit the max iteration, add a big warning
+      if (iteration && iteration === maxIters) {
+        finalSystemPrompt += `\n# WARNING\n\n## YOU ARE ON YOUR LAST ITERATION. NO MATTER WHAT, THE SYSTEM WILL NOT ALLOW YOU TO CONTINUE. FINISH YOUR FINAL RESPONSE THIS TURN.\n`;
       }
     }
 
@@ -233,7 +298,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * 4. (Optionally) handles tool execution
    * 5. Processes structured output
    * 
-   * Supports multiple iterations for tool usage, up to maxIterations, if auto-execution is enabled.
+   * Supports multiple iterations for tool usage, up to maxIterations, if auto-execution is enabled or if chainRun is true.
    * 
    * @param userInput - Optional new user input to process
    * @returns Promise resolving to AgentRunResult containing success status, output, and functionCalls (if any)
@@ -244,24 +309,29 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       this.addUserMessage(userInput);
     }
 
-    // Before calling the LLM, update the system message with any dynamic variables
-    const newSystemPrompt = this.buildSystemPrompt();
-    // Ensure the first message is always the system message
-    this.messages[0].content = newSystemPrompt;
-
-    if (this.agentRegistered) {
-      agentEventBus.updateSystemPrompt(this.getAgentId(), newSystemPrompt);
-    }
+    // If chainRun is enabled, we use maxChainIterations from config or fallback to 5
+    const chainRunEnabled = this.config.chainRun === true;
+    const maxIterations = chainRunEnabled
+      ? this.config.maxChainIterations ?? 5
+      : 5;
+    const autoExec = this.config.autoExecuteTools !== false;
 
     let iterationCount = 0;
-    const maxIterations = 5;
-    const autoExec = this.config.autoExecuteTools !== false;
 
     while (iterationCount < maxIterations) {
       iterationCount++;
       this.llmCallIteration++;
       logger.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
       this.logEntry(`--- LLM call iteration #${iterationCount} ---`);
+
+      // Build system prompt with possible chain-run warnings
+      const newSystemPrompt = this.buildSystemPrompt(iterationCount);
+      // Ensure the first message is always the system message
+      this.messages[0].content = newSystemPrompt;
+
+      if (this.agentRegistered) {
+        agentEventBus.updateSystemPrompt(this.getAgentId(), newSystemPrompt);
+      }
 
       const toolDefs = this.tools.map(t => ({
         type: 'function' as const,
@@ -271,6 +341,12 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           parameters: t.function.parameters
         }
       }));
+
+      // If chainRun is on and we're on the last iteration,
+      // force the model to call finish_run. Otherwise, keep it auto.
+      const forcedToolChoice: ChatCompletionToolChoiceOption = (chainRunEnabled && iterationCount === maxIterations)
+        ? { type: 'function', function: { name: 'finish_run' } }
+        : 'auto';
 
       const callParams = {
         model: this.config.model || "openai/gpt-4o",
@@ -282,7 +358,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           }
         })) as ChatCompletionMessageParam[],
         tools: toolDefs,
-        tool_choice: 'auto' as const,
+        tool_choice: forcedToolChoice,
         ...(this.config.structuredOutputSchema && {
           response_format: {
             type: "json_schema",
@@ -370,27 +446,42 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         }));
       }
 
-      // If no function calls, this might be final
+      // If no function calls, check if chainRun is enabled:
+      // - If chainRun is false, we can finalize now.
+      // - If chainRun is true, but we haven't called finish_run, we keep going unless we're at iteration limit.
       if (functionCalls.length === 0) {
-        let finalOutput = content.trim();
-
-        if (this.config.cognition) {
-          const speakMatch = content.match(/<speak>([\s\S]*?)<\/speak>/);
-          finalOutput = speakMatch ? speakMatch[1].trim() : finalOutput;
-        }
-
-        if (this.config.structuredOutputSchema) {
-          try {
-            const parsed = JSON.parse(finalOutput);
-            this.logEntry(`FINAL OUTPUT (parsed JSON): ${JSON.stringify(parsed, null, 2)}`);
-            return { success: true, output: parsed as TOutput };
-          } catch {
-            // fallback to plain text
+        if (!chainRunEnabled) {
+          // Normal flow, just finalize
+          let finalOutput = content.trim();
+          if (this.config.cognition) {
+            const speakMatch = content.match(/<speak>([\s\S]*?)<\/speak>/);
+            finalOutput = speakMatch ? speakMatch[1].trim() : finalOutput;
           }
-        }
 
-        this.logEntry(`FINAL OUTPUT: ${finalOutput}`);
-        return { success: true, output: finalOutput as TOutput };
+          if (this.config.structuredOutputSchema) {
+            try {
+              const parsed = JSON.parse(finalOutput);
+              this.logEntry(`FINAL OUTPUT (parsed JSON): ${JSON.stringify(parsed, null, 2)}`);
+              return { success: true, output: parsed as TOutput };
+            } catch {
+              // fallback to plain text
+            }
+          }
+
+          this.logEntry(`FINAL OUTPUT: ${finalOutput}`);
+          return { success: true, output: finalOutput as TOutput };
+        } else {
+          // chainRun is enabled, but no function calls:
+          // If we've reached the max iteration, we have to forcibly finalize with whatever content we have.
+          if (iterationCount === maxIterations) {
+            // End forcibly
+            const forcedOutput = content.trim();
+            this.logEntry(`CHAIN RUN: Reached max iterations without finish_run. Force final output.\nFINAL OUTPUT: ${forcedOutput}`);
+            return { success: true, output: forcedOutput as TOutput };
+          }
+          // Otherwise, continue the loop
+          continue;
+        }
       }
 
       // If function calls exist and auto-execution is disabled, return them immediately
@@ -428,7 +519,16 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
             const toolResult = await toolDef.execute(fc.functionArgs);
             const msg = `TOOL ${fc.functionName} ARGS=${JSON.stringify(fc.functionArgs)} RESULT=${JSON.stringify(toolResult)}`;
             this.logEntry(msg);
-            // Format tool execution results in a clear, structured way for the agent
+
+            // If it's the finish_run tool, we finalize with the final_response
+            if (fc.functionName === 'finish_run') {
+              const finalRes = (toolResult?.result || "").trim();
+
+              this.logEntry(`CHAIN RUN: finish_run called, returning final response.\nFINAL OUTPUT: ${finalRes}`);
+              return { _finishRunInvoked: true, result: finalRes };
+            }
+
+            // Format tool execution results for the agent
             return [
               '[ SYSTEM ]\n',
               `AGENT (YOU) EXECUTED THE TOOL ${fc.functionName}\n`,
@@ -446,13 +546,45 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         })
       );
 
-      // Add tool results to conversation as user messages
-      for (const r of results) {
+      // Check if finish_run was called
+      const finishRunCall = results.find(r => (r as any)?._finishRunInvoked === true);
+      if (finishRunCall && typeof finishRunCall === 'object') {
+        const finalText = (finishRunCall as any).result || "";
+        
+        // Add the finish_run tool execution to message history
+        const finishRunMessage = [
+          '[ SYSTEM ]\n',
+          'AGENT (YOU) EXECUTED THE TOOL finish_run\n',
+          'PARAMETERS:\n',
+          JSON.stringify({ final_response: finalText }, null, 2),
+          '\nRESULT:\n',
+          JSON.stringify({ result: finalText }, null, 2)
+        ].join('\n');
+        
         this.messages.push({
           role: 'user',
-          content: r
+          content: finishRunMessage
         });
-        this.logEntry(`USER (Tool Output): ${r}`);
+        
+        // Update GUI with final message history
+        if (this.agentRegistered) {
+          agentEventBus.updateChatHistory(this.getAgentId(), this.messages);
+        }
+        
+        this.logEntry(`USER (Tool Output - finish_run): ${finishRunMessage}`);
+        this.logEntry(`FINAL OUTPUT (via finish_run): ${finalText}`);
+        return { success: true, output: finalText as TOutput };
+      }
+
+      // For all other tool calls, add them to the conversation as user messages
+      for (const r of results) {
+        if (typeof r === 'string') {
+          this.messages.push({
+            role: 'user',
+            content: r
+          });
+          this.logEntry(`USER (Tool Output): ${r}`);
+        }
       }
 
       if (this.agentRegistered) {
