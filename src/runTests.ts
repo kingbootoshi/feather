@@ -30,29 +30,30 @@ const TEST_FILES: TestFiles = {
 };
 
 /**
- * Executes a TypeScript file using bun
- * @param filePath - Path to the TypeScript file to execute
+ * Executes a TypeScript file using bun.
+ * @param filePath - Path to the TypeScript file to execute.
+ * Returns a Promise that resolves once the command finishes.
  */
 async function executeTest(filePath: string): Promise<void> {
   return new Promise((resolve) => {
     // Use bun to execute the TypeScript file directly
     const fullPath = path.join(__dirname, filePath);
-    // Execute without piping to allow native logger output
+    // Construct the command to run the file
     const command = `LOG_LEVEL=debug bun run ${fullPath}`;
     
     logger.info(`Executing test: ${command}, check localhost:3000 for GUI`);
     
-    // Use shell: true to properly handle environment variables
+    // Execute the command with environment variables set
     exec(command, { 
       shell: process.platform === "win32" ? "cmd.exe" : "/bin/bash",
       env: {
         ...process.env,
         LOG_LEVEL: 'debug',
         NODE_ENV: process.env.NODE_ENV || 'development',
-        FORCE_COLOR: 'true' // Enable colored output
+        FORCE_COLOR: 'true'
       }
     }, (error: ExecException | null, stdout: string, stderr: string) => {
-      // Always show output regardless of error
+      // Always show output for debugging
       if (stdout) process.stdout.write(stdout);
       if (stderr) process.stderr.write(stderr);
 
@@ -71,7 +72,8 @@ async function executeTest(filePath: string): Promise<void> {
 }
 
 /**
- * Displays the main menu and handles user selection
+ * Displays the main menu using inquirer
+ * and handles the user's test selection.
  */
 async function showMenu(): Promise<void> {
   try {
@@ -95,8 +97,10 @@ async function showMenu(): Promise<void> {
       process.exit(0);
     }
 
+    // Execute the chosen test
     await executeTest(testChoice);
     
+    // Ask if user wants to run another test
     const { runAnother } = await inquirer.prompt<{ runAnother: boolean }>([
       {
         type: 'confirm',

@@ -19,6 +19,11 @@ interface AgentInfo {
   lastActive: number;
 }
 
+/**
+ * AgentEventBus uses an EventEmitter to track all active agents,
+ * store their system prompts, chat histories, logs, and LLM requests.
+ * Components like the debug GUI subscribe to these events.
+ */
 class AgentEventBus extends EventEmitter {
   private agents: Map<string, AgentInfo> = new Map();
   private static instance: AgentEventBus;
@@ -34,6 +39,11 @@ class AgentEventBus extends EventEmitter {
     return AgentEventBus.instance;
   }
 
+  /**
+   * Register a new agent or update an existing agent's record.
+   * @param agentId Unique identifier for the agent.
+   * @param agentInstance The FeatherAgent instance.
+   */
   public registerAgent(agentId: string, agentInstance: FeatherAgent) {
     // Clean the agent ID to ensure consistent lookup
     const cleanId = decodeURIComponent(agentId);
@@ -51,6 +61,7 @@ class AgentEventBus extends EventEmitter {
       lastActive: Date.now()
     };
     
+    // If agent already exists, keep existing logs and LLM requests
     if (existingAgent) {
       agentInfo.chatHistory = existingAgent.chatHistory;
       agentInfo.llmRequests = existingAgent.llmRequests;
@@ -61,14 +72,24 @@ class AgentEventBus extends EventEmitter {
     this.emit('newAgentSession', { agent: agentInfo });
   }
 
+  /**
+   * Retrieve agent information by ID.
+   * @param agentId ID of the agent to fetch.
+   */
   public getAgent(agentId: string): AgentInfo | undefined {
     return this.agents.get(agentId);
   }
 
+  /**
+   * Return an array of all known agents.
+   */
   public getAllAgents(): AgentInfo[] {
     return Array.from(this.agents.values());
   }
 
+  /**
+   * Update the system prompt for a given agent and emit an event.
+   */
   public updateSystemPrompt(agentId: string, prompt: string) {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
@@ -78,6 +99,9 @@ class AgentEventBus extends EventEmitter {
     }
   }
 
+  /**
+   * Update the chat history for a given agent and emit an event.
+   */
   public updateChatHistory(agentId: string, messages: any[]) {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
@@ -87,6 +111,9 @@ class AgentEventBus extends EventEmitter {
     }
   }
 
+  /**
+   * Store the final AI response for a given agent and emit an event.
+   */
   public updateAgentResponse(agentId: string, response: string) {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
@@ -95,6 +122,9 @@ class AgentEventBus extends EventEmitter {
     }
   }
 
+  /**
+   * Record any errors encountered by an agent and emit an event.
+   */
   public updateAgentError(agentId: string, error: string) {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
@@ -103,6 +133,9 @@ class AgentEventBus extends EventEmitter {
     }
   }
 
+  /**
+   * Update the logs for a given agent and emit an event.
+   */
   public updateAgentLog(agentId: string, logs: string[]) {
     const agentInfo = this.agents.get(agentId);
     if (agentInfo) {
@@ -112,7 +145,7 @@ class AgentEventBus extends EventEmitter {
   }
 
   /**
-   * Store a new LLM request object in the agent info.
+   * Store a new LLM request object in the agent info and broadcast an update.
    */
   public storeLlmRequest(agentId: string, record: { iteration: number; requestData: any }) {
     const agentInfo = this.agents.get(agentId);
@@ -123,7 +156,6 @@ class AgentEventBus extends EventEmitter {
       requestData: record.requestData
     });
     
-    // Emit event with the full requests array
     this.emit('llmRequestsUpdated', { 
       agentId, 
       requests: agentInfo.llmRequests 
@@ -131,18 +163,16 @@ class AgentEventBus extends EventEmitter {
   }
 
   /**
-   * Store the LLM response object for the specific iteration request.
+   * Store the LLM response for a specific iteration request
+   * and broadcast the updated requests array.
    */
   public storeLlmResponse(agentId: string, iteration: number, record: { responseData: any }) {
     const agentInfo = this.agents.get(agentId);
     if (!agentInfo) return;
 
-    // Find the request record with matching iteration
     const existing = agentInfo.llmRequests.find(r => r.iteration === iteration);
     if (existing) {
       existing.responseData = record.responseData;
-      
-      // Emit event with the full requests array
       this.emit('llmRequestsUpdated', { 
         agentId, 
         requests: agentInfo.llmRequests 
@@ -150,6 +180,9 @@ class AgentEventBus extends EventEmitter {
     }
   }
 
+  /**
+   * Returns agents that have been active within the last hour (for demonstration).
+   */
   public getActiveAgents(): AgentInfo[] {
     const oneHourAgo = Date.now() - (60 * 60 * 1000);
     return Array.from(this.agents.values())

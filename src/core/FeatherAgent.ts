@@ -10,6 +10,9 @@ import { ChatCompletionMessageParam } from 'openai/resources';
 import { agentEventBus } from '../gui/agentEventBus';
 import { debugGuiServer } from '../gui/debugGuiServer';
 
+/**
+ * Configuration interface for setting up a FeatherAgent.
+ */
 interface FeatherAgentConfig {
   agentId?: string;
   systemPrompt: string;
@@ -23,6 +26,10 @@ interface FeatherAgentConfig {
 
 let agentCounter = 0;
 
+/**
+ * FeatherAgent is responsible for orchestrating conversation flows with an LLM,
+ * optionally using tools, and optionally supporting a debug GUI.
+ */
 export class FeatherAgent {
   private messages: Message[] = [];
   private tools: ToolDefinition[] = [];
@@ -37,9 +44,10 @@ export class FeatherAgent {
     this.config = config;
     this.tools = config.tools || [];
 
-    // Generate unique ID if not provided
+    // Generate unique ID for agent if not provided
     this.agentId = config.agentId || `agent-${++agentCounter}`;
     
+    // Check for necessary API keys
     if (!process.env.OPENROUTER_API_KEY) {
       throw new Error("No OpenRouter API key provided in config or environment!");
     }
@@ -49,6 +57,7 @@ export class FeatherAgent {
     
     logger.info("Initializing FeatherAgent...");
 
+    // Create an OpenAI instance with optional OpenPipe integration if key is present
     this.openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -59,7 +68,8 @@ export class FeatherAgent {
       })
     });
 
-    // If cognition is enabled, instruct the LLM to produce <think><plan><speak> tags
+    // Add initial system prompt to messages.
+    // If cognition is enabled, we instruct the LLM to produce <think>,<plan>,<speak> tags.
     if (config.cognition) {
       const instructions = `\n\n#OUTPUT FORMAT\n\nYou are capable of cognition. To think, plan, and speak before executing tools, YOU MUST output the following schema:\n<think>\n*your internal thoughts*\n</think>\n<plan>\n*your plan*\n</plan>\n<speak>\n*what you say to the user*\n</speak>`;
       this.messages.push({
@@ -70,7 +80,7 @@ export class FeatherAgent {
       this.messages.push({ role: 'system', content: config.systemPrompt });
     }
 
-    // If debug is enabled, start the debug GUI server (if not already started) and register this agent
+    // If debug mode is true, start the debug GUI server and register the agent with the event bus
     if (config.debug) {
       debugGuiServer.startServer(); 
       agentEventBus.registerAgent(this.agentId, this);
@@ -78,6 +88,10 @@ export class FeatherAgent {
     }
   }
 
+  /**
+   * Adds a user (human) message to the conversation.
+   * @param content The text of the user message.
+   */
   public addUserMessage(content: string) {
     logger.debug({ content }, "FeatherAgent.addUserMessage");
     this.messages.push({ role: 'user', content });
@@ -87,6 +101,10 @@ export class FeatherAgent {
     }
   }
 
+  /**
+   * Adds an assistant message to the conversation (LLM response).
+   * @param content The text of the assistant message.
+   */
   public addAssistantMessage(content: string) {
     logger.debug({ content }, "FeatherAgent.addAssistantMessage");
     this.messages.push({ role: 'assistant', content });
@@ -96,32 +114,39 @@ export class FeatherAgent {
     }
   }
 
+  /**
+   * Returns a copy of the conversation messages.
+   */
   public getMessages() {
     return [...this.messages];
   }
 
   /**
-   * The main run method. Provide optional user input or just run with existing messages.
-   * Captures raw LLM content, tools used, and final answer. 
+   * The main run method that interacts with the LLM.
+   * Optionally takes userInput to append to conversation before proceeding.
+   * Loops up to a maximum iteration to handle possible tool usage calls.
    */
   public async run(userInput?: string): Promise<AgentRunResult> {
     if (userInput) {
       this.addUserMessage(userInput);
     }
 
+    // Update system prompt in debug GUI if registered
     if (this.agentRegistered) {
       agentEventBus.updateSystemPrompt(this.getAgentId(), this.config.systemPrompt);
     }
 
     let iterationCount = 0;
-    const maxIterations = 5;
+    const maxIterations = 5; // prevent infinite loops
 
+    // Each iteration, call the LLM and see if a tool call is required
     while (iterationCount < maxIterations) {
       iterationCount++;
       this.llmCallIteration++;
       logger.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
       this.logEntry(`--- LLM call iteration #${iterationCount} ---`);
 
+      // Build the tool definitions for the LLM call
       const toolDefs = this.tools.map(t => ({
         type: 'function' as const,
         function: {
@@ -131,6 +156,7 @@ export class FeatherAgent {
         }
       }));
 
+      // Construct parameters for the chat completion request
       const callParams = {
         model: this.config.model || "openai/gpt-4o",
         messages: this.messages.map(m => ({
@@ -145,7 +171,7 @@ export class FeatherAgent {
         ...this.config.additionalParams
       };
 
-      // Log the raw LLM request data
+      // Log the request for debugging
       logger.debug({ 
         event: 'llm_request',
         model: callParams.model,
@@ -155,7 +181,7 @@ export class FeatherAgent {
       }, "LLM API Request Data");
       this.logEntry(`LLM REQUEST:\n${JSON.stringify(callParams, null, 2)}`);
 
-      // Store the request in the agent event bus
+      // Store the LLM request in the event bus if agent is registered
       if (this.agentRegistered) {
         agentEventBus.storeLlmRequest(this.getAgentId(), {
           iteration: this.llmCallIteration,
@@ -165,6 +191,7 @@ export class FeatherAgent {
 
       let response;
       try {
+        // Make the chat completion call using our openAI instance
         response = await this.openai.chat.completions.create(callParams);
         
         // Log the raw LLM response data
@@ -178,7 +205,7 @@ export class FeatherAgent {
         }, "LLM API Response Data");
         this.logEntry(`LLM RESPONSE:\n${JSON.stringify(response, null, 2)}`);
 
-        // Store the response in the agent event bus
+        // Store the response in the agent event bus for debugging
         if (this.agentRegistered) {
           agentEventBus.storeLlmResponse(this.getAgentId(), this.llmCallIteration, {
             responseData: response
@@ -186,6 +213,7 @@ export class FeatherAgent {
         }
 
       } catch (err: any) {
+        // Log the error and return a failed result
         logger.error(err, "Error from OpenRouter call");
         const errorMsg = err.message || "Unknown LLM error";
         this.logEntry(`ERROR: ${errorMsg}`);
@@ -195,6 +223,7 @@ export class FeatherAgent {
         return { success: false, output: "", error: errorMsg };
       }
 
+      // Check if the model gave us any valid choices
       if (!response.choices || response.choices.length === 0) {
         const noRespErr = "No response from model";
         this.logEntry(`ERROR: ${noRespErr}`);
@@ -204,6 +233,7 @@ export class FeatherAgent {
         return { success: false, output: "", error: noRespErr };
       }
 
+      // Take the first choice from the model
       const choice = response.choices[0];
       if (!choice.message) {
         const noMsgErr = "No message in model choice";
@@ -218,12 +248,13 @@ export class FeatherAgent {
       logger.debug({ content }, "LLM assistant message content");
       this.logEntry(`RAW LLM content:\n${content}\n`);
 
-      // Add the raw LLM response to chat history
+      // Add the content as an assistant message
       this.addAssistantMessage(content);
 
       let functionCalls: FunctionCall[] = [];
       let toolUsed = false;
 
+      // If the model provided tool calls, store them for execution
       if (choice.message.tool_calls && Array.isArray(choice.message.tool_calls)) {
         functionCalls = choice.message.tool_calls.map(tc => ({
           functionName: tc.function.name,
@@ -231,6 +262,7 @@ export class FeatherAgent {
         }));
       }
 
+      // If we have function calls from the model, attempt to execute them
       if (functionCalls.length > 0) {
         logger.info("Detected function calls, executing tools...");
         this.logEntry(`Detected function calls: ${JSON.stringify(functionCalls)}`);
@@ -245,6 +277,7 @@ export class FeatherAgent {
               return toolErr;
             }
             try {
+              // Execute the tool and log the result
               const toolResult = await toolDef.execute(fc.functionArgs);
               const msg = `TOOL ${fc.functionName} ARGS=${JSON.stringify(fc.functionArgs)} RESULT=${JSON.stringify(toolResult)}`;
               this.logEntry(msg);
@@ -258,7 +291,7 @@ export class FeatherAgent {
           })
         );
 
-        // Add tool results as user messages
+        // Add tool results as user messages so the LLM can see them
         for (const r of results) {
           this.messages.push({
             role: 'user',
@@ -271,13 +304,16 @@ export class FeatherAgent {
           agentEventBus.updateChatHistory(this.getAgentId(), this.messages);
         }
       } else {
-        // final output
+        // If no tool was used, this is our final output to the user
         let finalOutput = content.trim();
+
+        // If cognition is enabled, we parse out the <speak> tags
         if (this.config.cognition) {
           const speakMatch = content.match(/<speak>([\s\S]*?)<\/speak>/);
           finalOutput = speakMatch ? speakMatch[1].trim() : finalOutput;
         }
 
+        // If a structured output schema is provided, attempt to parse JSON
         if (this.config.structuredOutputSchema) {
           try {
             const parsed = JSON.parse(finalOutput);
@@ -287,15 +323,19 @@ export class FeatherAgent {
             // fallback to plain text
           }
         }
+
+        // Return the final string output
         this.logEntry(`FINAL OUTPUT: ${finalOutput}`);
         return { success: true, output: finalOutput };
       }
 
+      // If we used a tool, the loop continues with the updated messages
       if (!toolUsed) {
         break;
       }
     }
 
+    // If we reach maximum iterations without final output, return an error
     const maxIterErr = "Max iterations reached";
     logger.error(maxIterErr);
     this.logEntry(`ERROR: ${maxIterErr}`);
@@ -306,12 +346,15 @@ export class FeatherAgent {
     return { success: false, output: "", error: maxIterErr };
   }
 
+  /**
+   * Returns the agent's unique ID.
+   */
   private getAgentId(): string {
     return this.agentId;
   }
 
   /**
-   * Append an entry to the agent's local log array
+   * Appends an entry to the agent's internal log array for debugging.
    */
   private logEntry(entry: string) {
     const timestamp = new Date().toISOString();

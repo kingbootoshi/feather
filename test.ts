@@ -1,5 +1,6 @@
 import { ToolDefinition } from './src/types/types'
 
+// A simple weather tool that returns a sunny forecast for the given location
 const weatherTool: ToolDefinition = {
     type: "function",
     function: {
@@ -17,6 +18,7 @@ const weatherTool: ToolDefinition = {
 
 import { FeatherAgent } from './src/core/FeatherAgent'
 
+// Create an agent configured with a basic system prompt and the weather tool
 const agent = new FeatherAgent({
     model: "openai/gpt-4o",
     systemPrompt: "You are a helpful assistant that provides clear, concise answers.",

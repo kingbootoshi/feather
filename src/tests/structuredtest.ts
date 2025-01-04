@@ -3,7 +3,6 @@ import { logger } from '../logger/logger';
 
 // Test demonstrating structured output with the Feather framework
 // The agent will return a JSON response conforming to our schema
-
 (async () => {
   // Create a structured output agent with a specific schema
   const agent = new FeatherAgent({
@@ -28,6 +27,7 @@ import { logger } from '../logger/logger';
   });
 
   const userMessage = "What is the capital of France?";
+  // The agent should produce a structured JSON answer
   const result = await agent.run(userMessage);
 
   if (result.success) {

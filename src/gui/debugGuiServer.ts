@@ -5,6 +5,11 @@ import { WebSocketServer } from 'ws';
 import { agentEventBus } from './agentEventBus';
 import { logger } from '../logger/logger';
 
+/**
+ * DebugGuiServer handles the GUI for the Feather framework,
+ * serving the debug HTML/JS files and managing the WebSocket connections
+ * that provide real-time updates on agent activity.
+ */
 class DebugGuiServer {
   private static instance: DebugGuiServer;
   private server!: http.Server;
@@ -27,6 +32,10 @@ class DebugGuiServer {
     return DebugGuiServer.instance;
   }
 
+  /**
+   * Sets up an HTTP server that serves the debug GUI HTML and JS,
+   * as well as API endpoints for retrieving agent data.
+   */
   private setupHttpServer() {
     this.server = http.createServer(async (req, res) => {
       if (!req.url) {
@@ -35,7 +44,7 @@ class DebugGuiServer {
         return;
       }
 
-      // Add CORS headers
+      // Add CORS headers for ease of access
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -47,10 +56,10 @@ class DebugGuiServer {
         return;
       }
 
-      // Decode the URL to handle special characters in agent IDs
+      // Decode the URL in case it has special characters
       const decodedUrl = decodeURIComponent(req.url);
 
-      // Serve HTML and JS
+      // Serve the main debug GUI files
       if (decodedUrl === '/' || decodedUrl === '/debugGui.html') {
         const filePath = path.join(__dirname, 'debugGui.html');
         try {
@@ -76,7 +85,7 @@ class DebugGuiServer {
         return;
       }
 
-      // /agents -> list agents
+      // Endpoint to list all agents
       if (decodedUrl.startsWith('/agents')) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         const agents = agentEventBus.getAllAgents().map(a => ({ 
@@ -87,7 +96,7 @@ class DebugGuiServer {
         return;
       }
 
-      // /agent/:id/:endpoint
+      // Regex to match /agent/:id/:endpoint
       const agentMatch = decodedUrl.match(/^\/agent\/([^/]+)\/([^/]+)$/);
       if (agentMatch) {
         const agentId = agentMatch[1];
@@ -99,6 +108,7 @@ class DebugGuiServer {
           return;
         }
 
+        // Respond with agent data depending on the endpoint
         switch (endpoint) {
           case 'system-prompt':
             res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -127,7 +137,7 @@ class DebugGuiServer {
         }
       }
 
-      // POST /agent/:id/message
+      // POST /agent/:id/message - send a message to the agent
       const postMatch = decodedUrl.match(/^\/agent\/([^/]+)\/message$/);
       if (postMatch && req.method === 'POST') {
         const agentId = postMatch[1];
@@ -150,6 +160,7 @@ class DebugGuiServer {
               res.end(JSON.stringify({ error: 'No message provided' }));
               return;
             }
+            // Add the message as user input and then run the agent
             agentInfo.agentInstance.addUserMessage(message);
             const result = await agentInfo.agentInstance.run();
             res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -163,11 +174,16 @@ class DebugGuiServer {
         return;
       }
 
+      // If no route matched, serve a default response
       res.writeHead(200, { 'Content-Type': 'text/plain' });
       res.end("Feather Debug GUI. Hit / to view.");
     });
   }
 
+  /**
+   * Sets up the WebSocket server to allow real-time communication
+   * about agent events (new session, updated chat, logs, etc.)
+   */
   private setupWebSocketServer() {
     this.wss = new WebSocketServer({ noServer: true });
     this.server.on('upgrade', (request, socket, head) => {
@@ -181,9 +197,11 @@ class DebugGuiServer {
       }
     });
     this.wss.on('connection', ws => {
+      // When a new connection is established, send the current agent list
       const agents = agentEventBus.getAllAgents().map(a => ({ id: a.id, name: a.id }));
       ws.send(JSON.stringify({ type: 'agents', agents }));
 
+      // Define event handlers for relevant agent events
       const handleNewSession = (data: any) => {
         if (ws.readyState === ws.OPEN) {
           ws.send(JSON.stringify({ type: 'newAgentSession', ...data }));
@@ -215,6 +233,7 @@ class DebugGuiServer {
         }
       };
 
+      // Listen to agent event bus
       agentEventBus.on('newAgentSession', handleNewSession);
       agentEventBus.on('systemPromptUpdated', handleSystemPromptUpdated);
       agentEventBus.on('chatHistoryUpdated', handleChatHistoryUpdated);
@@ -222,6 +241,7 @@ class DebugGuiServer {
       agentEventBus.on('agentLogsUpdated', handleAgentLogsUpdated);
       agentEventBus.on('llmRequestsUpdated', handleLlmRequestsUpdated);
 
+      // Clean up when the socket closes
       ws.on('close', () => {
         agentEventBus.removeListener('newAgentSession', handleNewSession);
         agentEventBus.removeListener('systemPromptUpdated', handleSystemPromptUpdated);
@@ -233,6 +253,9 @@ class DebugGuiServer {
     });
   }
 
+  /**
+   * Starts the server if not already started. Logs the listening port.
+   */
   public startServer() {
     if (this.started) return;
     this.started = true;

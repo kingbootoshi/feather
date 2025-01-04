@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Elements from the DOM for user interface
   const systemPromptDisplay = document.getElementById('systemPromptDisplay');
   const agentTabs = document.getElementById('agentTabs');
   const chatArea = document.getElementById('chatArea');
@@ -11,7 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let socket = null;
   let activeAgents = new Map();
 
-  // Connect to WebSocket for real-time updates
+  /**
+   * Initiates a WebSocket connection to receive real-time updates from the server.
+   * Reconnects automatically if the socket closes.
+   */
   function startWebSocket() {
     socket = new WebSocket(`ws://${window.location.host}/debug`);
 
@@ -19,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("WebSocket connected");
     };
 
+    // Handle incoming messages that update the GUI state
     socket.onmessage = (msgEvent) => {
       const data = JSON.parse(msgEvent.data);
       switch (data.type) {
@@ -46,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         case 'newAgentSession':
           // A new agent was registered on the server
-          // We can refresh the agent list or handle logic here
           console.log("New agent session:", data.agent.id);
           refreshAgentsAndSelectIfNone();
           break;
@@ -62,11 +66,10 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
 
         case 'chatHistoryUpdated':
-          // Update stored chat history
+          // Update stored chat history for the agent
           if (activeAgents.has(data.agentId)) {
             activeAgents.get(data.agentId).chatHistory = data.messages;
             if (data.agentId === currentAgentId) {
-              // Use the cached LLM requests instead of fetching
               llmRequestsData = activeAgents.get(data.agentId).llmRequests || [];
               renderChatHistory(data.messages);
               renderMainChat(data.messages);
@@ -75,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
 
         case 'aiResponseUpdated':
-          // We currently refresh chat entirely on chatHistoryUpdated, so no special handling needed here
+          // We currently refresh chat entirely on chatHistoryUpdated
           break;
 
         case 'agentLogsUpdated':
@@ -83,14 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
           break;
 
         case 'llmRequestsUpdated':
+          // Detailed data about LLM requests for the agent
           if (activeAgents.has(data.agentId)) {
-            // Update the stored LLM requests
             activeAgents.get(data.agentId).llmRequests = data.requests;
-            
-            // If this is the current agent, update the display
             if (data.agentId === currentAgentId) {
               llmRequestsData = data.requests;
-              // Re-render chat to update request details
               const cachedAgent = activeAgents.get(currentAgentId);
               if (cachedAgent) {
                 renderMainChat(cachedAgent.chatHistory);
@@ -111,9 +111,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // Begin our WebSocket connection
+  // Start the WebSocket connection
   startWebSocket();
 
+  /**
+   * Fetches a list of agents from the server.
+   */
   async function fetchAgents() {
     try {
       const resp = await fetch('/agents');
@@ -125,6 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * Fetches the system prompt text for a given agent ID.
+   */
   async function fetchSystemPrompt(agentId) {
     try {
       const encodedId = encodeURIComponent(agentId);
@@ -137,6 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * Fetches the chat history for a given agent ID.
+   */
   async function fetchChatHistory(agentId) {
     try {
       const encodedId = encodeURIComponent(agentId);
@@ -149,6 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * Fetches the LLM requests stored for a given agent ID.
+   */
   async function fetchLlmRequests(agentId) {
     try {
       const encodedId = encodeURIComponent(agentId);
@@ -161,6 +173,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  /**
+   * Creates a button to toggle showing request/response details
+   * for a specific LLM iteration.
+   */
   function createShowRequestButton(iteration) {
     const button = document.createElement('button');
     button.className = 'llm-details-button';
@@ -171,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const matchingRequest = llmRequestsData.find(r => r.iteration === iteration);
     if (matchingRequest) {
-      // Request Section
+      // Build a request section
       const requestSection = document.createElement('div');
       requestSection.className = 'llm-section';
 
@@ -186,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       requestSection.appendChild(requestTitle);
       requestSection.appendChild(requestContent);
 
-      // Response Section
+      // Build a response section
       const responseSection = document.createElement('div');
       responseSection.className = 'llm-section';
 
@@ -221,6 +237,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return { button, detailsContainer };
   }
 
+  /**
+   * Renders the main chat area with messages, including iteration-based detail toggles
+   * for assistant messages that may correspond to tool calls or requests.
+   */
   function renderMainChat(messages) {
     chatArea.innerHTML = '';
     if (!messages || messages.length === 0) {
@@ -239,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
       div.innerHTML = `<strong>${msg.role.toUpperCase()}:</strong> ${msg.content || ''}`;
       msgGroup.appendChild(div);
 
-      // If it's an assistant message, add the "Show LLM request" button
+      // If it's an assistant message, attach a toggle button for request details
       if (msg.role === 'assistant') {
         assistantCounter++;
         const { button, detailsContainer } = createShowRequestButton(assistantCounter);
@@ -251,6 +271,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /**
+   * Renders the chat history in the sidebar.
+   */
   function renderChatHistory(messages) {
     chatHistoryContainer.innerHTML = '';
     if (!messages || messages.length === 0) {
@@ -265,6 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /**
+   * Renders the list of agent tabs. Highlights the current agent.
+   */
   function renderAgentTabs(agents) {
     agentTabs.innerHTML = '';
     if (!agents || agents.length === 0) {
@@ -283,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.agent-tab').forEach(t => t.classList.remove('selected'));
         tab.classList.add('selected');
         
-        // Use cached data first
+        // Load from cache first
         const cachedAgent = activeAgents.get(a.id);
         if (cachedAgent) {
           systemPromptDisplay.textContent = cachedAgent.systemPrompt;
@@ -298,6 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /**
+   * Fetches updated data for the current agent
+   * and updates the UI to reflect the latest state.
+   */
   async function refreshAgentData() {
     if (!currentAgentId) return;
     const [prompt, history, requests] = await Promise.all([
@@ -311,9 +341,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderMainChat(history);
   }
 
+  /**
+   * Fetches agents and selects the first if none is currently selected.
+   */
   async function refreshAgentsAndSelectIfNone() {
     const agents = await fetchAgents();
-    // If no current agent, pick the first in the list
     if (!currentAgentId && agents.length > 0) {
       currentAgentId = agents[0].id;
     }
@@ -321,6 +353,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAgentData();
   }
 
+  // Initialize the agent list and select the first one (if available)
   (async () => {
     const agents = await fetchAgents();
     if (agents.length > 0) {
@@ -330,6 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshAgentData();
   })();
 
+  // Send user messages to the current agent
   if (sendMessageButton) {
     sendMessageButton.addEventListener('click', async () => {
       if (!currentAgentId) return;
@@ -350,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Send on Enter key
   if (userMessageInput) {
     userMessageInput.addEventListener('keyup', (e) => {
       if (e.key === 'Enter') {

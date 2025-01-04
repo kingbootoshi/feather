@@ -3,6 +3,7 @@ import { ToolDefinition } from '../types/types';
 import { logger } from '../logger/logger';
 
 // Example tool: Calculator with proper OpenAI function calling setup
+// This tool definition will be used by the agent to perform arithmetic.
 const calculatorTool: ToolDefinition = {
   type: "function",
   function: {
@@ -60,7 +61,8 @@ const calculatorTool: ToolDefinition = {
 };
 
 async function main() {
-  // Create a mathAgent with debug mode enabled (true) to start up the debug GUI automatically
+  // Create a mathAgent with debug mode to view the debug GUI in a browser
+  // The agent uses the calculatorTool to handle arithmetic.
   const mathAgent = new FeatherAgent({
     agentId: "math-tutor-v1",
     systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
@@ -70,7 +72,7 @@ async function main() {
     debug: true // <--- enabling debug mode
   });
 
-  // Example usage
+  // Example usage of the agent with a math question
   try {
     const res = await mathAgent.run("What is 3 multiplied by 7?");
     if (!res.success) {

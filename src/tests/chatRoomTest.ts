@@ -26,11 +26,11 @@ function createChatAgent(name: string): FeatherAgent {
  * Main function to run the chat room simulation
  */
 async function runChatRoom() {
-  // Create two agents with different names
+  // Create two agents with different names/personalities
   const pirate = createChatAgent("Captain Blackbeard");
   const ninja = createChatAgent("Shadow Warrior");
 
-  // Initialize the conversation
+  // Initialize the conversation with a dramatic statement
   let currentMessage = "THE TREASURE IS MINE!!!";
   let isPirateTurn = true;
 
@@ -42,9 +42,9 @@ async function runChatRoom() {
     logger.info(`\n${agentName} responding to: "${currentMessage}"`);
 
     try {
-      // Get the agent's response
+      // The current agent responds to the message
       const result = await currentAgent.run(currentMessage);
-      // Handle the response based on AgentRunResult type
+      // Update the message for the next agent
       currentMessage = result.output as string;
       logger.info(`${agentName}: ${currentMessage}`);
     } catch (error) {
@@ -52,7 +52,7 @@ async function runChatRoom() {
       break;
     }
 
-    // Switch turns
+    // Switch to the other agent for the next turn
     isPirateTurn = !isPirateTurn;
   }
 }
