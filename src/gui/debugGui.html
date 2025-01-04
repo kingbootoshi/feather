@@ -259,6 +259,13 @@
     background: var(--bg-secondary);
   }
 
+  .chat-message.user:has(.tool-header) {
+    border-left: 4px solid var(--accent-blue);
+    margin-right: 20px;
+    margin-left: 0;
+    background: var(--bg-secondary);
+  }
+
   /* New styles for XML tag formatting */
   .chat-message .tag-header {
     font-weight: bold;
@@ -480,6 +487,39 @@
   .chat-image:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px var(--shadow-color);
+  }
+
+  .tag-header {
+    font-weight: bold;
+    color: var(--accent-blue);
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  .tag-content {
+    margin-left: 15px;
+    color: var(--text-primary);
+    font-style: italic;
+  }
+
+  .tool-header {
+    color: var(--accent-dark);
+    border-bottom: 1px solid var(--accent-dark);
+    padding-bottom: 3px;
+  }
+
+  .tool-content {
+    font-family: monospace;
+    font-style: normal;
+    background: var(--bg-primary) !important;
+    padding: 8px;
+    border-radius: 4px;
+    border-left: 3px solid var(--accent-dark);
+  }
+
+  pre.tool-content {
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
 
 </style>

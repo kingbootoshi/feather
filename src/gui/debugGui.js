@@ -351,6 +351,58 @@ document.addEventListener('DOMContentLoaded', () => {
           speakContent.textContent = tags.speak.trim();
           div.appendChild(speakContent);
         }
+      } else if (msg.content.includes('[ SYSTEM ]') && msg.content.includes('AGENT (YOU) EXECUTED THE TOOL')) {
+        // Parse tool execution message
+        const lines = msg.content.split('\n').filter(line => line.trim()); // Remove empty lines
+        const toolMatch = lines.find(line => line.includes('EXECUTED THE TOOL'))?.match(/EXECUTED THE TOOL (\w+)/);
+        const toolName = toolMatch ? toolMatch[1] : 'unknown';
+        
+        // Find the parameters and result sections
+        const paramsStart = lines.findIndex(line => line.trim() === 'PARAMETERS:');
+        const resultStart = lines.findIndex(line => line.trim() === 'RESULT:');
+        
+        if (paramsStart !== -1 && resultStart !== -1) {
+          const params = lines.slice(paramsStart + 1, resultStart).join('\n');
+          const result = lines.slice(resultStart + 1).join('\n');
+
+          // Create tool execution header
+          const toolHeader = document.createElement('div');
+          toolHeader.className = 'tag-header tool-header';
+          toolHeader.textContent = `TOOL EXECUTION: ${toolName}`;
+          div.appendChild(toolHeader);
+
+          // Create parameters section
+          const paramsHeader = document.createElement('div');
+          paramsHeader.className = 'tag-header';
+          paramsHeader.textContent = 'PARAMETERS:';
+          div.appendChild(paramsHeader);
+
+          const paramsContent = document.createElement('pre');
+          paramsContent.className = 'tag-content tool-content';
+          try {
+            const formattedParams = JSON.stringify(JSON.parse(params.trim()), null, 2);
+            paramsContent.textContent = formattedParams;
+          } catch (e) {
+            paramsContent.textContent = params.trim();
+          }
+          div.appendChild(paramsContent);
+
+          // Create result section
+          const resultHeader = document.createElement('div');
+          resultHeader.className = 'tag-header';
+          resultHeader.textContent = 'RESULT:';
+          div.appendChild(resultHeader);
+
+          const resultContent = document.createElement('pre');
+          resultContent.className = 'tag-content tool-content';
+          try {
+            const formattedResult = JSON.stringify(JSON.parse(result.trim()), null, 2);
+            resultContent.textContent = formattedResult;
+          } catch (e) {
+            resultContent.textContent = result.trim();
+          }
+          div.appendChild(resultContent);
+        }
       } else {
         // For non-XML messages, render content normally including HTML
         const contentDiv = document.createElement('div');

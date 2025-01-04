@@ -61,44 +61,44 @@ const calculatorTool: ToolDefinition = {
 };
 
 async function main() {
-  // Create an agent that does NOT auto-execute tools
-  const manualMathAgent = new FeatherAgent({
-    agentId: "math-tutor-manual",
-    systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
-    tools: [calculatorTool],
-    model: "deepseek/deepseek-chat",
-    debug: true,
-    autoExecuteTools: false // <--- do NOT auto-execute function calls
-  });
+  // // Create an agent that does NOT auto-execute tools
+  // const manualMathAgent = new FeatherAgent({
+  //   agentId: "math-tutor-manual",
+  //   systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
+  //   tools: [calculatorTool],
+  //   model: "deepseek/deepseek-chat",
+  //   debug: true,
+  //   autoExecuteTools: false // <--- do NOT auto-execute function calls
+  // });
 
-  try {
-    const res = await manualMathAgent.run("What is 1294 multiplied by 9966?");
-    if (!res.success) {
-      logger.error(`Agent error: ${res.error || 'unknown'}`);
-      return;
-    }
+  // try {
+  //   const res = await manualMathAgent.run("What is 1294 multiplied by 9966?");
+  //   if (!res.success) {
+  //     logger.error(`Agent error: ${res.error || 'unknown'}`);
+  //     return;
+  //   }
 
-    logger.info({ output: res.output, tools: res.functionCalls }, "Agent response (manual execution)");
-    /*
-      Here, if res.functionCalls is non-empty, you can manually call calculatorTool.execute()
-      or handle them as desired in your application logic.
-    */
+  //   logger.info({ output: res.output, tools: res.functionCalls }, "Agent response (manual execution)");
+  //   /*
+  //     Here, if res.functionCalls is non-empty, you can manually call calculatorTool.execute()
+  //     or handle them as desired in your application logic.
+  //   */
 
-    // For demo purposes, let's auto-execute them ourselves:
-    if (res.functionCalls && res.functionCalls.length > 0) {
-      for (const call of res.functionCalls) {
-        logger.info(`Manually executing tool: ${call.functionName}`);
-        const toolDefinition = [calculatorTool].find(t => t.function.name === call.functionName);
-        if (toolDefinition) {
-          const result = await toolDefinition.execute(call.functionArgs);
-          logger.info({ result }, "Manual tool execution result");
-        }
-      }
-    }
+  //   // For demo purposes, let's auto-execute them ourselves:
+  //   if (res.functionCalls && res.functionCalls.length > 0) {
+  //     for (const call of res.functionCalls) {
+  //       logger.info(`Manually executing tool: ${call.functionName}`);
+  //       const toolDefinition = [calculatorTool].find(t => t.function.name === call.functionName);
+  //       if (toolDefinition) {
+  //         const result = await toolDefinition.execute(call.functionArgs);
+  //         logger.info({ result }, "Manual tool execution result");
+  //       }
+  //     }
+  //   }
 
-  } catch (error) {
-    logger.error({ error }, "Fatal error running manualMathAgent");
-  }
+  // } catch (error) {
+  //   logger.error({ error }, "Fatal error running manualMathAgent");
+  // }
 
   // Create a mathAgent that DOES auto-execute tools
   const autoMathAgent = new FeatherAgent({
@@ -106,12 +106,12 @@ async function main() {
     systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
     tools: [calculatorTool],
     model: "deepseek/deepseek-chat",
+    cognition: true,
     debug: true,
-    autoExecuteTools: true // <--- auto-execute function calls
   });
 
   try {
-    const res = await autoMathAgent.run("What is 3 multiplied by 3?");
+    const res = await autoMathAgent.run("What is 1294 multiplied by 9966 + 223.5322 * 2.113");
     if (!res.success) {
       logger.error(`Agent error: ${res.error || 'unknown'}`);
       return;

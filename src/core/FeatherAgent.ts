@@ -428,7 +428,15 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
             const toolResult = await toolDef.execute(fc.functionArgs);
             const msg = `TOOL ${fc.functionName} ARGS=${JSON.stringify(fc.functionArgs)} RESULT=${JSON.stringify(toolResult)}`;
             this.logEntry(msg);
-            return JSON.stringify({ tool: fc.functionName, result: toolResult });
+            // Format tool execution results in a clear, structured way for the agent
+            return [
+              '[ SYSTEM ]\n',
+              `AGENT (YOU) EXECUTED THE TOOL ${fc.functionName}\n`,
+              'PARAMETERS:\n',
+              JSON.stringify(fc.functionArgs, null, 2),
+              '\nRESULT:\n', 
+              JSON.stringify(toolResult, null, 2)
+            ].join('\n');
           } catch (err: any) {
             logger.error(err, `Error executing tool: ${fc.functionName}`);
             const errorRes = `Error in tool ${fc.functionName}: ${err.message}`;

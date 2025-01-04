@@ -25,7 +25,7 @@ async function main() {
   // First run
   try {
     logger.info("First run - checking time");
-    dynamicVariableAgent.addUserMessage("What time is it right now?");
+    dynamicVariableAgent.addUserMessage("What is the EXACT time right now?");
     const res1 = await dynamicVariableAgent.run();
     if (!res1.success) {
       logger.error(`Agent error: ${res1.error || 'unknown'}`);

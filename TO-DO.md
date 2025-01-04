@@ -1,4 +1,5 @@
 TO DO:
+- add chainRunning (option for agent to run again on it's own, chaining tool calls together)
 - add unit tests in a single file to ensure everything works
 - add talking to an agent in the chatbox gui if enabled
 
@@ -12,3 +13,6 @@ thinking...
 -> this is how feather can fit with hearth
 
 solution: have option for turning off auto execute for tools, and then manually calling the tool execute function + dealing with content result
+
+jan 3 11:59 PM
+- i left off with the chainRun on finish_run tool logic working, but i just have to make it pretty and show logs, fix consistency. maybe do an o1 re-run. but i think thats the answer. also we made it so tools used are properly logged in the agent
