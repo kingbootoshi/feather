@@ -2,6 +2,10 @@ import { FeatherAgent } from '../core/FeatherAgent';
 import { ToolDefinition } from '../types/types';
 import { logger } from '../logger/logger';
 
+// THIS TEST REQUIRES A PERPLEXITY API KEY
+// You can get one at https://www.perplexity.ai/
+
+
 // Define interfaces for Perplexity API
 interface Message {
   role: 'system' | 'user' | 'assistant';
@@ -90,6 +94,13 @@ const internetTool: ToolDefinition = {
 };
 
 async function main() {
+  // Check for Perplexity API key
+  if (!process.env.PERPLEXITY_API_KEY) {
+    logger.error("No Perplexity API key found. Please set PERPLEXITY_API_KEY in your .env file");
+    logger.info("You can get a Perplexity API key at https://www.perplexity.ai/");
+    return;
+  }
+
   // Create an internet research agent that auto-executes searches
   const internetAgent = new FeatherAgent({
     agentId: "internet-researcher",

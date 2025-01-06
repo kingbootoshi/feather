@@ -1,19 +1,31 @@
 {
-  "name": "feather",
-  "version": "1.0.0",
-  "description": "Feather: A lightweight agent framework using OpenRouter + pino logs",
+  "name": "feather-ai",
+  "version": "0.1.0",
+  "description": "Feather: A lightweight agent framework for building AI agents with tools that auto-execute",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "LOG_LEVEL=debug bun run src/runTests.ts | pino-pretty -c -t -l"
+    "test": "LOG_LEVEL=debug bun run src/runTests.ts | pino-pretty -c -t -l",
+    "prepublishOnly": "npm run build",
+    "clean": "rm -rf dist",
+    "prepare": "npm run clean && npm run build"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
     "ai",
     "agent",
     "feather",
-    "openrouter"
+    "openrouter",
+    "llm",
+    "tools",
+    "function-calling",
+    "typescript"
   ],
   "author": "Bootoshi",
   "license": "MIT",

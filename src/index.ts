@@ -1,6 +1,21 @@
-import { FeatherAgent } from './core/FeatherAgent';
-
 /**
- * Export FeatherAgent class so users can import from the feather package root.
+ * Main exports for the Feather framework
  */
-export { FeatherAgent };
+
+// Core exports
+export { FeatherAgent } from './core/FeatherAgent';
+
+// Type exports
+export {
+  Message,
+  ToolDefinition,
+  FunctionCall,
+  AgentRunResult,
+  ContentPart,
+  OpenRouterParameters,
+  ImageContent,
+  TextContent
+} from './types/types';
+
+// Re-export logger for users who want to use it
+export { logger } from './logger/logger';

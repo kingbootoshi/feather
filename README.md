@@ -19,6 +19,10 @@ const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summari
 const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData.output)
 ```
 
+```bash
+npm install feather-ai
+```
+
 ## DEBUG GUI 
 Feather comes with an optional GUI that displays detailed log of the agent's system prompt, message history, and LLM requests/responses that went into each assistant message.
 
@@ -33,6 +37,16 @@ https://openrouter.ai/
 We use OpenPipe for collecting training data of agents. This is optional, but HIGHLY recommended for any agent that is used in production. Your data is GOLD, make sure to mine it!
 
 https://openpipe.ai/
+
+.env keys required:
+
+```bash
+## OPENROUTER KEY FOR AI FUNCTIONS
+OPENROUTER_API_KEY=
+
+## OPENPIPE KEY FOR DATA COLLECTION (OPTIONAL BUT HIGHLY RECOMMENDED)
+OPENPIPE_API_KEY=
+```
 
 ## CREATING AN AGENT
 
