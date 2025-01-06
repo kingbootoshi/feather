@@ -19,6 +19,8 @@ const timelineData = twitterAgent.run("Get 50 tweets from my AI list and summari
 const videoScript = videoScriptAgent.run('Create me a video script based on todays AI news:' + timelineData.output)
 ```
 
+To install Feather, run the following command:
+
 ```bash
 npm install feather-ai
 ```
