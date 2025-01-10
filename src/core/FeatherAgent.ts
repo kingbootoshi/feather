@@ -38,8 +38,8 @@ interface FeatherAgentConfig<TOutput = string | Record<string, any>> {
 
   /**
    * Optional dynamic variables that are functions returning strings.
-   * They will be placed into the system prompt under "## DYNAMIC VARIABLES"
-   * each time run() is called.
+   * Each time run() is called, these placeholders can be injected via the
+   * {{variableName}} syntax anywhere in the systemPrompt template.
    */
   dynamicVariables?: {
     [variableName: string]: () => string;
@@ -183,31 +183,47 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
   }
 
   /**
-   * Builds the complete system prompt by combining:
-   * 1. Base system prompt
-   * 2. Dynamic variables (if any)
-   * 3. Output format instructions (for cognition or structured output)
-   * 4. Chain run instructions if chainRun is true
-   * @returns The complete system prompt string
+   * Inserts dynamic variables into the system prompt string using
+   * the {{variableName}} syntax. If no placeholder is found for a
+   * variable, no additional text is appended.
+   * @param basePrompt - The base system prompt template
+   * @returns The system prompt with placeholders replaced
    */
-  private buildSystemPrompt(iteration?: number): string {
-    let finalSystemPrompt = this.baseSystemPrompt;
+  private applySystemPromptTemplate(basePrompt: string): string {
+    let finalPrompt = basePrompt;
 
-    // If dynamicVariables exist, generate them
     if (this.config.dynamicVariables) {
-      finalSystemPrompt += "\n\n## DYNAMIC VARIABLES - Variables updated in your system prompt every single time you are executed.\n";
       const keys = Object.keys(this.config.dynamicVariables);
       for (const key of keys) {
         const fn = this.config.dynamicVariables[key];
         try {
           const val = fn();
-          finalSystemPrompt += `${key}: ${val}\n`;
+          // Replace all occurrences of {{key}} with the dynamic value
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          finalPrompt = finalPrompt.replace(regex, val);
         } catch (err: any) {
           logger.error(err, `Error executing dynamic variable: ${key}`);
-          finalSystemPrompt += `${key}: [Error retrieving dynamic variable]\n`;
+          // If there's an error retrieving the variable, we replace it with a placeholder
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+          finalPrompt = finalPrompt.replace(regex, `[Error retrieving dynamic variable: ${key}]`);
         }
       }
     }
+
+    return finalPrompt;
+  }
+
+  /**
+   * Builds the complete system prompt by combining:
+   * 1. Base system prompt (with placeholders replaced by dynamic variables)
+   * 2. Additional instructions for chain running if enabled
+   * 3. Additional instructions for cognition or structured output
+   * @param iteration - The current chain run iteration (if chainRun is enabled)
+   * @returns The complete system prompt string
+   */
+  private buildSystemPrompt(iteration?: number): string {
+    // First, apply our template placeholders
+    let finalSystemPrompt = this.applySystemPromptTemplate(this.baseSystemPrompt);
 
     // If chainRun is enabled, add instructions
     if (this.config.chainRun) {
@@ -310,7 +326,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
   /**
    * Main execution method that:
    * 1. Processes user input
-   * 2. Updates system prompt with dynamic variables
+   * 2. Updates system prompt with dynamic variables (via template)
    * 3. Makes LLM API calls
    * 4. (Optionally) handles tool execution
    * 5. Processes structured output
@@ -344,7 +360,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       logger.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
       this.logEntry(`--- LLM call iteration #${iterationCount} ---`);
 
-      // Build system prompt with possible chain-run warnings
+      // Build system prompt with possible chain-run or cognition instructions
       const newSystemPrompt = this.buildSystemPrompt(iterationCount);
       // Ensure the first message is always the system message
       this.messages[0].content = newSystemPrompt;

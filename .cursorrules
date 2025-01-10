@@ -261,10 +261,17 @@ If you are using structured output instead of tools, the .run() function will re
 ### DYNAMIC VARIABLES
 Dynamic variables allow you to inject real-time data into your agent's system prompt. These variables are functions that return strings and are executed every time the agent's `.run()` method is called. This ensures your agent always has access to the most up-to-date information.
 
+You can use the `{{variableName}}` syntax to specify exactly where in your system prompt the dynamic variable should be injected:
+
 ```typescript
-// Create an agent with dynamic variables
+// Create an agent with dynamic variables and custom placement
 const agent = new FeatherAgent({
-  systemPrompt: "You are a helpful assistant that knows the current time.",
+  systemPrompt: indentNicely`
+    You are a helpful assistant that knows the current time.
+    Right now, the time is: {{currentTime}}
+    
+    There are currently {{activeUsers}} users online.
+  `,
   model: "openai/gpt-4o",
   dynamicVariables: {
     currentTime: () => new Date().toLocaleString(), // Updates every .run() call
@@ -272,9 +279,11 @@ const agent = new FeatherAgent({
   }
 });
 
-// The dynamic variables will be injected into the system prompt under "## DYNAMIC VARIABLES"
-// currentTime: 12/25/2023, 3:45:00 PM
-// activeUsers: 1,234
+// The dynamic variables will be injected exactly where specified in the system prompt
+// You are a helpful assistant that knows the current time.
+// Right now, the time is: 12/25/2023, 3:45:00 PM
+// 
+// There are currently 1,234 users online.
 ```
 
 Dynamic variables are perfect for:
@@ -282,6 +291,37 @@ Dynamic variables are perfect for:
 - System status information
 - User context that changes frequently
 - Any data that needs to be fresh each time the agent runs
+
+### STRING UTILITIES
+Feather comes with utility functions to help with common string operations:
+
+#### indentNicely
+A template literal tag that normalizes indentation in multi-line strings. It removes leading/trailing empty lines and normalizes indentation based on the first non-empty line:
+
+```typescript
+import { indentNicely } from './utils';
+
+const myText = indentNicely`
+    This text will have
+    consistent indentation
+        even with nested levels
+    regardless of how it's
+    formatted in the source code
+`;
+
+// Output:
+// This text will have
+// consistent indentation
+//     even with nested levels
+// regardless of how it's
+// formatted in the source code
+```
+
+This is particularly useful for:
+- Writing system prompts with clean formatting
+- Generating code with proper indentation
+- Creating multi-line text templates
+- Maintaining readable source code while producing clean output
 
 # LOGGING
 

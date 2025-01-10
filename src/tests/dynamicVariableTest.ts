@@ -1,5 +1,6 @@
 import { FeatherAgent } from '../core/FeatherAgent';
 import { logger } from '../logger/logger';
+import { indentNicely } from '../utils';
 
 // Function to get current time in a readable format
 const getCurrentTime = (): string => {
@@ -11,10 +12,16 @@ const getCurrentTime = (): string => {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function main() {
-  // Create an agent that can see images with debug mode to view the debug GUI in a browser
+  // Demonstrate templated dynamic variables in the system prompt
   const dynamicVariableAgent = new FeatherAgent({
     agentId: "dynamic-variable-test",
-    systemPrompt: "You are a fun AI agent that speaks English and can tell the current time.",
+    // Notice the placeholder in the systemPrompt: {{currentTime}}
+    systemPrompt: indentNicely`
+    You are a fun AI agent that can tell the current time accurately.
+
+    Right now, the time is: 
+    {{currentTime}}
+    `,
     model: "openai/gpt-4o",
     debug: true, // <--- enabling debug mode
     dynamicVariables: {
@@ -22,37 +29,34 @@ async function main() {
     }
   });
 
-  // First run
   try {
-    logger.info("First run - checking time");
+    logger.info("First run - checking time (placeholder replaced in prompt)");
     dynamicVariableAgent.addUserMessage("What is the EXACT time right now?");
     const res1 = await dynamicVariableAgent.run();
     if (!res1.success) {
       logger.error(`Agent error: ${res1.error || 'unknown'}`);
       return;
     }
-    logger.info({ output: res1.output }, "First time check");
+    logger.info({ output: res1.output }, "First time check result");
 
-    // Wait for 10 seconds
-    logger.info("Waiting 10 seconds...");
-    await delay(10000);
+    logger.info("Waiting 5 seconds before next run...");
+    await delay(5000);
 
-    // Second run
-    logger.info("Second run - checking time again");
-    dynamicVariableAgent.addUserMessage("What's the time now? Has it changed from your last check?");
+    logger.info("Second run - systemPrompt should update placeholder again");
+    dynamicVariableAgent.addUserMessage("What's the time now? Has it changed?");
     const res2 = await dynamicVariableAgent.run();
     if (!res2.success) {
       logger.error(`Agent error: ${res2.error || 'unknown'}`);
       return;
     }
-    logger.info({ output: res2.output }, "Second time check");
+    logger.info({ output: res2.output }, "Second time check result");
   } catch (error) {
-    logger.error({ error }, "Fatal error running dynamicVariableAgent");
+    logger.error({ error }, "Fatal error running dynamicVariableAgent test");
   }
 }
 
 // Run if called directly
 if (require.main === module) {
-  logger.debug('Starting dynamic variable test');
+  logger.debug('Starting dynamic variable placeholder test');
   main().catch(err => logger.error({ err }, "Error running dynamicVariableAgent"));
 }
