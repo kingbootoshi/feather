@@ -1,11 +1,15 @@
 {
   "name": "feather-ai",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "description": "Feather: A lightweight agent framework for building AI agents with tools that auto-execute",
   "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "typings": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "copy-assets": "node copy-assets.js",
+    "postbuild": "npm run copy-assets",
     "start": "node dist/index.js",
     "test": "LOG_LEVEL=debug bun run src/runTests.ts | pino-pretty -c -t -l",
     "prepublishOnly": "npm run build",
@@ -15,7 +19,10 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "dist/gui",
+    "dist/index.js",
+    "dist/index.d.ts"
   ],
   "keywords": [
     "ai",
@@ -42,5 +49,11 @@
     "@types/inquirer": "^9.0.7",
     "@types/ws": "^8.5.13",
     "typescript": "^5.2.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
