@@ -254,13 +254,42 @@ class DebugGuiServer {
   }
 
   /**
-   * Starts the server if not already started. Logs the listening port.
+   * Starts the server if not already started. 
+   * If the initial port is taken, tries subsequent ports until a free one is found.
+   * Logs the listening port.
    */
   public startServer() {
     if (this.started) return;
-    this.started = true;
-    this.server.listen(this.port, () => {
-      logger.info(`Feather debug GUI at http://localhost:${this.port}`);
+
+    const tryPort = (port: number) => {
+      return new Promise<number>((resolve, reject) => {
+        // Create a test server to check if port is available
+        const testServer = http.createServer();
+        testServer.once('error', (err: any) => {
+          if (err.code === 'EADDRINUSE') {
+            // Port is in use, try next port
+            testServer.close(() => resolve(tryPort(port + 1)));
+          } else {
+            reject(err);
+          }
+        });
+        testServer.once('listening', () => {
+          // Port is free, close test server and start actual server
+          testServer.close(() => {
+            this.server.listen(port, () => {
+              this.started = true;
+              logger.info(`Feather debug GUI at http://localhost:${port}`);
+              resolve(port);
+            });
+          });
+        });
+        testServer.listen(port);
+      });
+    };
+
+    // Start trying ports from the initial port
+    tryPort(this.port).catch(err => {
+      logger.error({ err }, "Failed to start debug GUI server");
     });
   }
 }
