@@ -66,7 +66,8 @@ async function main() {
     agentId: "math-tutor-manual",
     systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
     tools: [calculatorTool],
-    model: "deepseek/deepseek-chat",
+    model: "openai/gpt-4o",
+    forceTool: true,
     debug: true,
     autoExecuteTools: false // <--- do NOT auto-execute function calls
   });
@@ -100,27 +101,27 @@ async function main() {
     logger.error({ error }, "Fatal error running manualMathAgent");
   }
 
-  // Create a mathAgent that DOES auto-execute tools
-  const autoMathAgent = new FeatherAgent({
-    agentId: "math-tutor-auto",
-    systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
-    tools: [calculatorTool],
-    model: "deepseek/deepseek-chat",
-    cognition: true,
-    debug: true,
-  });
+  // // Create a mathAgent that DOES auto-execute tools
+  // const autoMathAgent = new FeatherAgent({
+  //   agentId: "math-tutor-auto",
+  //   systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
+  //   tools: [calculatorTool],
+  //   model: "deepseek/deepseek-chat",
+  //   cognition: true,
+  //   debug: true,
+  // });
 
-  try {
-    const res = await autoMathAgent.run("What is 1294 multiplied by 9966 + 223.5322 * 2.113");
-    if (!res.success) {
-      logger.error(`Agent error: ${res.error || 'unknown'}`);
-      return;
-    }
+  // try {
+  //   const res = await autoMathAgent.run("What is 1294 multiplied by 9966 + 223.5322 * 2.113");
+  //   if (!res.success) {
+  //     logger.error(`Agent error: ${res.error || 'unknown'}`);
+  //     return;
+  //   }
 
-    logger.info({ output: res.output }, "Agent response (auto execution)");
-  } catch (error) {
-    logger.error({ error }, "Fatal error running autoMathAgent");
-  }
+  //   logger.info({ output: res.output }, "Agent response (auto execution)");
+  // } catch (error) {
+  //   logger.error({ error }, "Fatal error running autoMathAgent");
+  // }
 }
 
 // Run if called directly

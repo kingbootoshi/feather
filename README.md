@@ -133,6 +133,7 @@ Optional:
 - `structuredOutputSchema` (object) - Schema for structured output (cannot use with tools or cognition)
 - `additionalParams` (object) - Extra LLM API parameters (temperature etc.)
 - `debug` (boolean) - Enables debug GUI monitoring
+- `forceTool` (boolean) - Forces the agent to use exactly one tool (requires exactly one tool in tools array, cannot be used with chainRun)
 
 ### MODIFYING AN AGENT'S MESSAGE HISTORY
 You can modify an agent's message history with the following methods:
@@ -217,6 +218,25 @@ const internetTool: ToolDefinition = {
   }
 };
 ```
+
+### FORCED TOOL USAGE
+You can force an agent to use exactly one tool by enabling the `forceTool` parameter. This is useful when you want to ensure the agent uses a specific tool for a task.
+
+```typescript
+const searchAgent = new FeatherAgent({
+  systemPrompt: "You are a search assistant that always searches for information.",
+  tools: [searchTool], // Must provide exactly ONE tool
+  forceTool: true     // Forces the agent to use searchTool
+});
+
+// The agent will ALWAYS use searchTool, no matter what the user asks
+const result = await searchAgent.run("Tell me about quantum computers");
+```
+
+Requirements for forced tool usage:
+- Must provide exactly ONE tool in the tools array
+- Cannot be used with chainRun (as it returns after one tool use)
+- The agent will be forced to use the tool regardless of the query, which will end the .run() after returning the tool result
 
 ### CHAIN RUNNING
 Chain running allows an agent to execute multiple tools in sequence until it decides to finish. This is useful for complex tasks that require multiple steps or tool calls.

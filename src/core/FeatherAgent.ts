@@ -56,6 +56,13 @@ interface FeatherAgentConfig<TOutput = string | Record<string, any>> {
    * Defaults to 5 if not set.
    */
   maxChainIterations?: number;
+
+  /**
+   * If true, the LLM is forced to call exactly one tool.
+   * - Must only use exactly one tool in the tools array
+   * - chainRun cannot be enabled
+   */
+  forceTool?: boolean;
 }
 
 /**
@@ -128,6 +135,16 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
 
     if (config.cognition && config.structuredOutputSchema) {
       throw new Error("Cannot use both cognition and structuredOutputSchema - they are mutually exclusive.");
+    }
+
+    // If forceTool is true, ensure chainRun is false and exactly one tool is present
+    if (config.forceTool) {
+      if (config.chainRun) {
+        throw new Error("Cannot enable chainRun when forceTool is true.");
+      }
+      if (this.tools.length !== 1) {
+        throw new Error("forceTool requires exactly ONE tool in the tools array.");
+      }
     }
 
     logger.info("Initializing FeatherAgent...");
@@ -311,10 +328,13 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
 
     // If chainRun is enabled, we use maxChainIterations from config or fallback to 5
     const chainRunEnabled = this.config.chainRun === true;
-    const maxIterations = chainRunEnabled
-      ? this.config.maxChainIterations ?? 5
-      : 5;
+    let maxIterations = chainRunEnabled ? (this.config.maxChainIterations ?? 5) : 5;
     const autoExec = this.config.autoExecuteTools !== false;
+
+    // If forceTool is on, we override so there's only 1 iteration
+    if (this.config.forceTool) {
+      maxIterations = 1;
+    }
 
     let iterationCount = 0;
 
@@ -342,11 +362,18 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         }
       }));
 
-      // If chainRun is on and we're on the last iteration,
-      // force the model to call finish_run. Otherwise, keep it auto.
-      const forcedToolChoice: ChatCompletionToolChoiceOption = (chainRunEnabled && iterationCount === maxIterations)
+      // If chainRun is on and we're on the last iteration, force the model to call finish_run
+      let forcedToolChoice: ChatCompletionToolChoiceOption = (chainRunEnabled && iterationCount === maxIterations)
         ? { type: 'function', function: { name: 'finish_run' } }
         : 'auto';
+
+      // If forceTool is on, forcibly choose the single tool
+      if (this.config.forceTool && this.tools.length === 1) {
+        forcedToolChoice = {
+          type: 'function',
+          function: { name: this.tools[0].function.name }
+        };
+      }
 
       const callParams = {
         model: this.config.model || "openai/gpt-4o",
@@ -446,9 +473,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         }));
       }
 
-      // If no function calls, check if chainRun is enabled:
-      // - If chainRun is false, we can finalize now.
-      // - If chainRun is true, but we haven't called finish_run, we keep going unless we're at iteration limit.
+      // If no function calls, handle chainRun or finalize
       if (functionCalls.length === 0) {
         if (!chainRunEnabled) {
           // Normal flow, just finalize
@@ -472,21 +497,18 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           return { success: true, output: finalOutput as TOutput };
         } else {
           // chainRun is enabled, but no function calls:
-          // If we've reached the max iteration, we have to forcibly finalize with whatever content we have.
           if (iterationCount === maxIterations) {
             // End forcibly
             const forcedOutput = content.trim();
             this.logEntry(`CHAIN RUN: Reached max iterations without finish_run. Force final output.\nFINAL OUTPUT: ${forcedOutput}`);
             return { success: true, output: forcedOutput as TOutput };
           }
-          // Otherwise, continue the loop
           continue;
         }
       }
 
       // If function calls exist and auto-execution is disabled, return them immediately
       if (!autoExec) {
-        // Return calls for manual handling
         this.logEntry("Tool calls detected but autoExecuteTools = false. Returning calls without execution.");
         let finalOutput = content.trim();
         if (this.config.cognition) {
