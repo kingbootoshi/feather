@@ -5,6 +5,8 @@
 // Core exports
 export { FeatherAgent } from './core/FeatherAgent';
 
+export { indentNicely } from './utils';
+
 // Type exports
 export {
   Message,
