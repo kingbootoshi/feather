@@ -334,12 +334,13 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * Supports multiple iterations for tool usage, up to maxIterations, if auto-execution is enabled or if chainRun is true.
    * 
    * @param userInput - Optional new user input to process
+   * @param options - Optional parameters including image URLs
    * @returns Promise resolving to AgentRunResult containing success status, output, and functionCalls (if any)
    */
-  public async run(userInput?: string): Promise<AgentRunResult<TOutput>> {
+  public async run(userInput?: string, options?: { images?: string[] }): Promise<AgentRunResult<TOutput>> {
     // If user provided new input at run time, add it
     if (userInput) {
-      this.addUserMessage(userInput);
+      this.addUserMessage(userInput, options);
     }
 
     // If chainRun is enabled, we use maxChainIterations from config or fallback to 5
