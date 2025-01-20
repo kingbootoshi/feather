@@ -167,6 +167,7 @@ However, you can disable auto-execution by setting `autoExecuteTools: false` in 
 const manualAgent = new FeatherAgent({
   systemPrompt: "You are a math tutor who can do calculations",
   tools: [calculatorTool],
+  forceTool: true, // forces the agent to use this tool instantly and return the result
   autoExecuteTools: false // Disable auto-execution
 });
 
@@ -174,6 +175,21 @@ const res = await manualAgent.run("What is 42 * 73?");
 console.log("Agent response:", res.output);
 console.log("Tool calls to handle:", res.functionCalls);
 // functionCalls contains array of: { functionName: string, functionArgs: any }
+```
+
+example log of res:
+```typescript
+DEBUG: Agent response (manual execution)
+    res: {
+      "success": true,
+      "output": "", // sometimes output is empty because the AI agent just decides to use a tool, which is completely fine.
+      "functionCalls": [
+        {
+          "functionName": "calculator",
+          "functionArgs": "{\"num1\":1294,\"num2\":9966,\"operation\":\"multiply\"}"
+        }
+      ]
+    }
 ```
 
 Parallel tool calls are supported in both auto and manual execution modes.

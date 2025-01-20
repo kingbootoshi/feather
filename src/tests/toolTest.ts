@@ -79,6 +79,8 @@ async function main() {
       return;
     }
 
+    logger.debug({ res }, "Agent response (manual execution)");
+
     logger.info({ output: res.output, tools: res.functionCalls }, "Agent response (manual execution)");
     /*
       Here, if res.functionCalls is non-empty, you can manually call calculatorTool.execute()
