@@ -1,3 +1,59 @@
+// Theme definitions for Feather GUI
+const themes = {
+  // Default Feather theme (Cream/Blue)
+  light: {
+    '--bg-primary': '#F4F1EA',
+    '--bg-secondary': '#E8E4D9',
+    '--accent-blue': '#7A9BB6',
+    '--accent-dark': '#2F4858',
+    '--text-primary': '#2F353B',
+    '--border-color': '#D5CFC3',
+    '--hover-color': '#EAE6DC',
+    '--shadow-color': 'rgba(47, 53, 59, 0.1)'
+  },
+  // Cypher Core theme (Orange/Black)
+  dark: {
+    '--bg-primary': '#000000',
+    '--bg-secondary': '#1A1A1A',
+    '--accent-blue': '#FF8C00',
+    '--accent-dark': '#FF4500',
+    '--text-primary': '#DDDDDD',
+    '--border-color': '#FF8C00',
+    '--hover-color': '#111111',
+    '--shadow-color': 'rgba(255,140,0,0.3)'
+  },
+  // Synthwave theme (Purple/Pink)
+  synthwave: {
+    '--bg-primary': '#2B0136',
+    '--bg-secondary': '#3C0064',
+    '--accent-blue': '#FF4FF8',
+    '--accent-dark': '#F443E3',
+    '--text-primary': '#FFC3F4',
+    '--border-color': '#F443E3',
+    '--hover-color': '#4C008C',
+    '--shadow-color': 'rgba(255, 79, 248, 0.25)'
+  }
+};
+
+// Apply theme by setting CSS variables
+function applyTheme(themeName) {
+  const root = document.documentElement;
+  const themeVars = themes[themeName] || themes.light;
+  Object.entries(themeVars).forEach(([varName, value]) => {
+    root.style.setProperty(varName, value);
+  });
+}
+
+// Load saved theme from localStorage
+function loadSavedTheme() {
+  return localStorage.getItem('featherTheme') || 'light';
+}
+
+// Save theme preference to localStorage
+function saveTheme(themeName) {
+  localStorage.setItem('featherTheme', themeName);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Elements from the DOM for user interface
   const systemPromptDisplay = document.getElementById('systemPromptDisplay');
@@ -6,6 +62,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatHistoryContainer = document.getElementById('chatHistoryContainer');
   const userMessageInput = document.getElementById('userMessageInput');
   const sendMessageButton = document.getElementById('sendMessageButton');
+
+  // Initialize theme selector
+  const themeSelector = document.getElementById('themeSelector');
+  if (themeSelector) {
+    // Load and apply saved theme
+    const initialTheme = loadSavedTheme();
+    themeSelector.value = initialTheme;
+    applyTheme(initialTheme);
+
+    // Handle theme changes
+    themeSelector.addEventListener('change', (e) => {
+      const newTheme = e.target.value;
+      applyTheme(newTheme);
+      saveTheme(newTheme);
+    });
+  }
 
   let currentAgentId = null;
   let llmRequestsData = [];

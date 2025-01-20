@@ -522,6 +522,44 @@
     word-wrap: break-word;
   }
 
+  /* Theme selector styles */
+  .theme-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .theme-selector-container label {
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .theme-selector-container select {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: "Roboto Mono", monospace;
+    font-size: 13px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .theme-selector-container select:hover {
+    border-color: var(--accent-blue);
+  }
+
+  .theme-selector-container select:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 2px rgba(122, 155, 182, 0.2);
+  }
+
 </style>
 </head>
 <body>
@@ -540,6 +578,15 @@
   <!-- Main container for agent tabs and the conversation UI -->
   <div class="main-container">
     <div class="agent-tabs" id="agentTabs"></div>
+    <!-- Theme selector -->
+    <div class="theme-selector-container">
+      <label for="themeSelector">Theme:</label>
+      <select id="themeSelector">
+        <option value="light">Feather (Cream/Blue)</option>
+        <option value="dark">Cypher Core (Orange/Black)</option>
+        <option value="synthwave">Synthwave (Purple/Pink)</option>
+      </select>
+    </div>
     <div class="main-content">
       <div class="main-content-header">
         <h1>Main Run Logic</h1>
