@@ -130,7 +130,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       throw new Error("No OpenRouter API key provided in config or environment!");
     }
     if (!process.env.OPENPIPE_API_KEY) {
-      logger.warn("No OpenPipe API key provided in config or environment! The agent will run but no data will be captured.");
+      this.warn("No OpenPipe API key provided in config or environment! The agent will run but no data will be captured.");
     }
 
     if (config.cognition && config.structuredOutputSchema) {
@@ -147,7 +147,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       }
     }
 
-    logger.info("Initializing FeatherAgent...");
+    this.info("Initializing FeatherAgent...");
 
     this.openai = new OpenAI({
       baseURL: "https://openrouter.ai/api/v1",
@@ -202,7 +202,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
           finalPrompt = finalPrompt.replace(regex, val);
         } catch (err: any) {
-          logger.error(err, `Error executing dynamic variable: ${key}`);
+          this.error(err, `Error executing dynamic variable: ${key}`);
           // If there's an error retrieving the variable, we replace it with a placeholder
           const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
           finalPrompt = finalPrompt.replace(regex, `[Error retrieving dynamic variable: ${key}]`);
@@ -268,7 +268,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * @param options - Optional parameters including image URLs
    */
   public addUserMessage(content: string, options?: { images?: string[] }) {
-    logger.debug({ content, images: options?.images }, "FeatherAgent.addUserMessage");
+    this.debug({ content, images: options?.images }, "FeatherAgent.addUserMessage");
 
     // Format the content according to OpenRouter's schema
     const formattedContent: ContentPart[] = [
@@ -307,7 +307,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
    * @param content - The text content of the assistant's message
    */
   public addAssistantMessage(content: string) {
-    logger.debug({ content }, "FeatherAgent.addAssistantMessage");
+    this.debug({ content }, "FeatherAgent.addAssistantMessage");
     this.messages.push({ role: 'assistant', content });
     this.logEntry(`ASSISTANT: ${content}`);
     if (this.agentRegistered) {
@@ -358,7 +358,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
     while (iterationCount < maxIterations) {
       iterationCount++;
       this.llmCallIteration++;
-      logger.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
+      this.info({ iterationCount }, "FeatherAgent.run - LLM call iteration");
       this.logEntry(`--- LLM call iteration #${iterationCount} ---`);
 
       // Build system prompt with possible chain-run or cognition instructions
@@ -412,9 +412,9 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
         ...this.config.additionalParams
       };
 
-      logger.debug({ callParams }, "FeatherAgent.run - callParams");
+      this.debug({ callParams }, "FeatherAgent.run - callParams");
 
-      logger.debug({
+      this.debug({
         event: 'llm_request',
         model: callParams.model,
         messages: callParams.messages,
@@ -433,7 +433,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       let response;
       try {
         response = await this.openai.chat.completions.create(callParams);
-        logger.debug({
+        this.debug({
           event: 'llm_response',
           response_id: response.id,
           model: response.model,
@@ -449,7 +449,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
           });
         }
       } catch (err: any) {
-        logger.error(err, "Error from OpenRouter call");
+        this.error(err, "Error from OpenRouter call");
         const errorMsg = err.message || "Unknown LLM error";
         this.logEntry(`ERROR: ${errorMsg}`);
         if (this.agentRegistered) {
@@ -478,7 +478,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       }
 
       const content = choice.message.content || "";
-      logger.debug({ content }, "LLM assistant message content");
+      this.debug({ content }, "LLM assistant message content");
       this.logEntry(`RAW LLM content:\n${content}\n`);
       this.addAssistantMessage(content);
 
@@ -542,14 +542,13 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       }
 
       // Otherwise, auto-execute each tool call
-      logger.info("Detected function calls, executing tools...");
+      this.info("Detected function calls, executing tools...");
       this.logEntry(`Detected function calls: ${JSON.stringify(functionCalls)}`);
 
       const results = await Promise.all(
         functionCalls.map(async fc => {
           const toolDef = this.tools.find(t => t.function.name === fc.functionName);
           if (!toolDef) {
-            logger.error(`No tool found with name: ${fc.functionName}`);
             const toolErr = `Tool ${fc.functionName} not found`;
             this.logEntry(toolErr);
             return toolErr;
@@ -577,7 +576,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
               JSON.stringify(toolResult, null, 2)
             ].join('\n');
           } catch (err: any) {
-            logger.error(err, `Error executing tool: ${fc.functionName}`);
+            this.error(err, `Error executing tool: ${fc.functionName}`);
             const errorRes = `Error in tool ${fc.functionName}: ${err.message}`;
             this.logEntry(errorRes);
             return errorRes;
@@ -634,7 +633,7 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
 
     // If we exceed max iterations:
     const maxIterErr = "Max iterations reached";
-    logger.error(maxIterErr);
+    this.error(maxIterErr);
     this.logEntry(`ERROR: ${maxIterErr}`);
     if (this.agentRegistered) {
       agentEventBus.updateAgentError(this.getAgentId(), maxIterErr);
@@ -663,5 +662,37 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
     if (this.agentRegistered) {
       agentEventBus.updateAgentLog(this.getAgentId(), this.agentLog);
     }
+  }
+
+  /**
+   * Info-level log (only shown if debug mode is true).
+   */
+  private info(obj: object | unknown, msg?: string, ...args: any[]): void {
+    if (this.config.debug) {
+      logger.info(obj, msg, ...args);
+    }
+  }
+
+  /**
+   * Debug-level log (only shown if debug mode is true).
+   */
+  private debug(obj: object | unknown, msg?: string, ...args: any[]): void {
+    if (this.config.debug) {
+      logger.debug(obj, msg, ...args);
+    }
+  }
+
+  /**
+   * Warn-level log (always shown).
+   */
+  private warn(obj: object | unknown, msg?: string, ...args: any[]): void {
+    logger.warn(obj, msg, ...args);
+  }
+
+  /**
+   * Error-level log (always shown).
+   */
+  private error(obj: object | unknown, msg?: string, ...args: any[]): void {
+    logger.error(obj, msg, ...args);
   }
 }

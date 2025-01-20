@@ -1,6 +1,6 @@
 {
   "name": "feather-ai",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Feather: A lightweight agent framework for building AI agents with tools that auto-execute",
   "main": "dist/index.js",
   "module": "dist/index.js",

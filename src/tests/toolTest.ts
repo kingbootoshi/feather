@@ -61,15 +61,15 @@ const calculatorTool: ToolDefinition = {
 };
 
 async function main() {
-  // // Create an agent that does NOT auto-execute tools
+  // Create an agent that does NOT auto-execute tools
   const manualMathAgent = new FeatherAgent({
     agentId: "math-tutor-manual",
     systemPrompt: "You are a math tutor who can do calculations using the calculator tool. Provide answers politely.",
     tools: [calculatorTool],
     model: "openai/gpt-4o",
     forceTool: true,
-    debug: true,
-    autoExecuteTools: false // <--- do NOT auto-execute function calls
+    autoExecuteTools: false, // <--- do NOT auto-execute function calls
+    debug: false
   });
 
   try {
