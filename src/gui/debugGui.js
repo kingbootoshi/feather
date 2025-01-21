@@ -425,7 +425,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       } else if (msg.content.includes('[ SYSTEM ]') && msg.content.includes('AGENT (YOU) EXECUTED THE TOOL')) {
         // Parse tool execution message
-        const lines = msg.content.split('\n').filter(line => line.trim()); // Remove empty lines
+        const parts = msg.content.split('[ SYSTEM ]');
+        
+        // If there's content before the tool execution, render it first
+        if (parts[0].trim()) {
+          const contentDiv = document.createElement('div');
+          contentDiv.innerHTML = renderMessageContent(parts[0].trim());
+          div.appendChild(contentDiv);
+        }
+        
+        // Now handle the tool execution part
+        const toolContent = '[ SYSTEM ]' + parts[1];
+        const lines = toolContent.split('\n').filter(line => line.trim()); // Remove empty lines
         const toolMatch = lines.find(line => line.includes('EXECUTED THE TOOL'))?.match(/EXECUTED THE TOOL (\w+)/);
         const toolName = toolMatch ? toolMatch[1] : 'unknown';
         
@@ -433,9 +444,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const paramsStart = lines.findIndex(line => line.trim() === 'PARAMETERS:');
         const resultStart = lines.findIndex(line => line.trim() === 'RESULT:');
         
-        if (paramsStart !== -1 && resultStart !== -1) {
-          const params = lines.slice(paramsStart + 1, resultStart).join('\n');
-          const result = lines.slice(resultStart + 1).join('\n');
+        if (paramsStart !== -1) {
+          const params = lines.slice(paramsStart + 1, resultStart !== -1 ? resultStart : undefined).join('\n');
 
           // Create tool execution header
           const toolHeader = document.createElement('div');
@@ -459,21 +469,25 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           div.appendChild(paramsContent);
 
-          // Create result section
-          const resultHeader = document.createElement('div');
-          resultHeader.className = 'tag-header';
-          resultHeader.textContent = 'RESULT:';
-          div.appendChild(resultHeader);
+          // Create result section if it exists
+          if (resultStart !== -1) {
+            const result = lines.slice(resultStart + 1).join('\n');
+            
+            const resultHeader = document.createElement('div');
+            resultHeader.className = 'tag-header';
+            resultHeader.textContent = 'RESULT:';
+            div.appendChild(resultHeader);
 
-          const resultContent = document.createElement('pre');
-          resultContent.className = 'tag-content tool-content';
-          try {
-            const formattedResult = JSON.stringify(JSON.parse(result.trim()), null, 2);
-            resultContent.textContent = formattedResult;
-          } catch (e) {
-            resultContent.textContent = result.trim();
+            const resultContent = document.createElement('pre');
+            resultContent.className = 'tag-content tool-content';
+            try {
+              const formattedResult = JSON.stringify(JSON.parse(result.trim()), null, 2);
+              resultContent.textContent = formattedResult;
+            } catch (e) {
+              resultContent.textContent = result.trim();
+            }
+            div.appendChild(resultContent);
           }
-          div.appendChild(resultContent);
         }
       } else {
         // For non-XML messages, render content normally including HTML

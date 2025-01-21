@@ -527,6 +527,28 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
       // If function calls exist and auto-execution is disabled, return them immediately
       if (!autoExec) {
         this.logEntry("Tool calls detected but autoExecuteTools = false. Returning calls without execution.");
+        
+        // Format the tool calls in the same way as auto-executed tools
+        const toolCallsFormatted = functionCalls.map(fc => [
+          '[ SYSTEM ]\n',
+          `AGENT (YOU) EXECUTED THE TOOL ${fc.functionName}\n`,
+          'PARAMETERS:\n',
+          JSON.stringify(fc.functionArgs, null, 2)
+        ].join('\n')).join('\n\n');
+
+        // Combine any existing content with the tool calls format
+        const finalContent = [
+          content.trim(),
+          toolCallsFormatted
+        ].filter(Boolean).join('\n\n');
+
+        // Update the last assistant message with the combined content
+        this.messages[this.messages.length - 1].content = finalContent;
+
+        if (this.agentRegistered) {
+          agentEventBus.updateChatHistory(this.getAgentId(), this.messages);
+        }
+
         let finalOutput = content.trim();
         if (this.config.cognition) {
           const speakMatch = content.match(/<speak>([\s\S]*?)<\/speak>/);
