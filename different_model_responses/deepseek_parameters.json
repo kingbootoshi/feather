@@ -1,0 +1,18 @@
+{
+  "data": {
+    "model": "deepseek/deepseek-r1-distill-llama-70b",
+    "supported_parameters": [
+      "max_tokens",
+      "temperature",
+      "top_p",
+      "stop",
+      "frequency_penalty",
+      "presence_penalty",
+      "repetition_penalty",
+      "response_format",
+      "top_k",
+      "seed",
+      "min_p"
+    ]
+  }
+}

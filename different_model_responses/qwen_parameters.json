@@ -1,0 +1,42 @@
+{
+  "data": {
+    "model": "qwen/qvq-72b-preview",
+    "supported_parameters": [
+      "max_tokens",
+      "temperature",
+      "top_p",
+      "stop",
+      "frequency_penalty",
+      "presence_penalty",
+      "repetition_penalty",
+      "response_format",
+      "top_k",
+      "seed",
+      "min_p"
+    ],
+    "frequency_penalty_p10": 0,
+    "frequency_penalty_p50": 0,
+    "frequency_penalty_p90": 0,
+    "min_p_p10": 0,
+    "min_p_p50": 0,
+    "min_p_p90": 0,
+    "presence_penalty_p10": 0,
+    "presence_penalty_p50": 0,
+    "presence_penalty_p90": 0,
+    "repetition_penalty_p10": 1,
+    "repetition_penalty_p50": 1,
+    "repetition_penalty_p90": 1,
+    "temperature_p10": 0,
+    "temperature_p50": 0.7,
+    "temperature_p90": 1,
+    "top_a_p10": 0,
+    "top_a_p50": 0,
+    "top_a_p90": 0,
+    "top_k_p10": 0,
+    "top_k_p50": 0,
+    "top_k_p90": 0,
+    "top_p_p10": 1,
+    "top_p_p50": 1,
+    "top_p_p90": 1
+  }
+}

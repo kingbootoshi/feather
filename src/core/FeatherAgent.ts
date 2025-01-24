@@ -401,8 +401,10 @@ export class FeatherAgent<TOutput = string | Record<string, any>> {
             agent_id: this.config.agentId || 'default',
           }
         })) as ChatCompletionMessageParam[],
-        tools: toolDefs,
-        tool_choice: forcedToolChoice,
+        ...(toolDefs.length > 0 && {
+          tools: toolDefs,
+          tool_choice: forcedToolChoice
+        }),
         ...(this.config.structuredOutputSchema && {
           response_format: {
             type: "json_schema",

@@ -1,0 +1,1 @@
+- make the GUI experience interactive for chatting with a bot
